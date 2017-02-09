@@ -68,7 +68,7 @@ def parse_id(branch):
         try:
             result_dict = {'wosid': id_.text}
         except:
-            logging.error('In branch {0} UID could not be parsed'.format(id_path))
+            logging.error(' parse_id() : in branch {0} UID could not be parsed'.format(id_path))
             raise
     except:
         success = False
@@ -85,8 +85,8 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
     if filter_false:
         left_out = list(map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves)))
         if len(left_out) > 0:
-            logging.error('In branch {0} {1} leaf(ves) were filtered out.'.format(branch_path, len(left_out)))
-            # logging.error(left_out)
+            logging.error(' prune_branch() : in branch {0} {1} leaf(ves) were '
+                          'filtered out.'.format(branch_path, len(left_out)))
         parsed_leaves = list(filter(lambda x: x[0], parsed_leaves))
 
     success = all(list(map(lambda x: x[0], parsed_leaves)))
@@ -200,7 +200,7 @@ def parse_name(branch):
             display_name = branch.find(display_name_path)
             result_dict.update({display_name_path: display_name.text})
         except:
-            logging.error('display name absent:')
+            logging.error(' parse_name() : display_name not found:')
             logging.error(etree_to_dict(branch))
             raise
 
@@ -220,7 +220,7 @@ def parse_name(branch):
                 # add_no_int = filter(lambda x: is_int(x), add_no_str)
                 result_dict[add_no_key] = list(map(lambda x: int(x), add_no_str))
             except:
-                logging.error('address numbers string parsing failure')
+                logging.error(' parse_name() : address numbers string parsing failure:')
                 logging.error(etree_to_dict(branch))
 
     except:
@@ -255,7 +255,7 @@ def parse_reference(branch):
         try:
             result_dict.update({uid_path: uid.text})
         except:
-            logging.error('uid field absent:')
+            logging.error(' parse_reference() : uid field absent:')
             logging.error(etree_to_dict(branch))
             raise
 
@@ -300,18 +300,19 @@ def parse_date(branch, global_year, path=pubinfo_path):
             month = extract_month(attrib_dict)
             date_dict.update({'month': month})
         except:
-            logging.error('Could not capture month')
+            logging.error(' parse_date() : could not capture month')
         try:
             day = extract_day(attrib_dict)
             date_dict.update({'day': day})
         except:
-            logging.error('Could not capture day')
+            logging.error(' parse_date() : could not capture day')
 
         # satisfied with just the year info
         # good_date = list(map(lambda x: date_dict[x][1], good_keys))
         # ultimate_success = all(list(map(lambda x: date_dict[x][0], date_dict.keys())
         date_dict = {k: v[1] for k, v in date_dict.items() if v[0]}
     except:
+        logging.error(' parse_date() : could not capture year')
         success = False
         date_dict = {}
     return success, date_dict
@@ -331,14 +332,14 @@ def extract_year(date_info_dict, global_year):
             date = datetime.strptime(sortdate, '%Y-%m-%d')
             years[sd] = date.year
         except:
-            logging.error('sortdate format corrupt: {0}'.format(sortdate))
+            logging.error(' extract_year() : sortdate format corrupt: {0}'.format(sortdate))
 
     elif py in date_info_dict.keys():
         pubyear = date_info_dict[py]
         try:
             years[py] = int(pubyear)
         except:
-            logging.error('pubyear format corrupt: {0}'.format(pubyear))
+            logging.error(' extract_year() : pubyear format corrupt: {0}'.format(pubyear))
     else:
         years[gl] = global_year
 
@@ -371,7 +372,8 @@ def extract_month(info_dict):
             date = datetime.strptime(sortdate, '%Y-%m-%d')
             months[sd] = date.month
         except:
-            logging.error('sortdate format corrupt: {0}'.format(sortdate))
+            logging.error(' extract_month() : sortdate format '
+                          'corrupt: {0}'.format(sortdate))
     if pm in info_dict.keys():
         month_letter = info_dict[pm]
         try:
@@ -382,11 +384,13 @@ def extract_month(info_dict):
             # possible exception trigger
             months['pubmonth'] = date.month
         except:
-            logging.error('pubmonth format corrupt: {0}'.format(month_letter))
+            logging.error(' extract_month() : pubmonth format '
+                          'corrupt: {0}'.format(month_letter))
 
     # give priority to sortdate month, report possible discrepancy
     if len(months) == 2 and months[sd] != months[pm]:
-        logging.error('extracted months from sortdate and pubmonth are not '
+        logging.error(' extract_month() : extracted months '
+                      'from sortdate and pubmonth are not '
                       'equal: {0} and {1}'.format(months[sd], months[pm]))
 
     if sd in months.keys():
@@ -412,7 +416,8 @@ def extract_day(info_dict):
             date = datetime.strptime(sortdate, '%Y-%m-%d')
             days[sd] = date.day
         except:
-            logging.error('sortdate format corrupt: {0}'.format(sortdate))
+            logging.error(' extract_day() : sortdate format '
+                          'corrupt: {0}'.format(sortdate))
     if pm in info_dict.keys():
         month_letter = info_dict[pm]
         try:
@@ -420,11 +425,13 @@ def extract_day(info_dict):
                 date = datetime.strptime(month_letter, '%b %d')
                 days['pubmonth'] = date.day
         except:
-            logging.error('pubmonth format corrupt: {0}'.format(month_letter))
+            logging.error(' extract_day() : pubmonth format '
+                          'corrupt: {0}'.format(month_letter))
 
     # give priority to sortdate month, report possible discrepancy
     if len(days) == 2 and days[sd] != days[pm]:
-        logging.error('extracted days from sortdate and pubmonth are not '
+        logging.error(' extract_day() : day extracted '
+                      'from sortdate and from pubmonth are not '
                       'equal: {0} and {1}'.format(days[sd], days[pm]))
 
     if sd in days.keys():
@@ -450,7 +457,8 @@ def parse_pubtype(branch):
             pubinfo = branch.find(pubinfo_path)
             result_dict = {'pubtype': pubinfo.attrib['pubtype']}
         except:
-            logging.error('pubtype absent down path {0}'.format(pubinfo_path))
+            logging.error(' parse_pubtype() : pubtype absent '
+                          'down path {0}'.format(pubinfo_path))
             raise
     except:
         success = False
@@ -469,7 +477,8 @@ def parse_doctype(branch):
     try:
         value = branch.text
     except:
-        logging.error('No text attr for doctype field')
+        logging.error(' parse_doctype() : No text attr '
+                      'for doctype field')
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -489,7 +498,8 @@ def parse_identifier(branch):
         result_dict = {dd['type']: dd['value']}
     except:
         result_dict = etree_to_dict(branch)
-        logging.error('Identifier attrib parse failed : {0}'.format(result_dict))
+        logging.error(' parse_identifier() : identifier attrib '
+                      'parse failed : {0}'.format(result_dict))
         success = False
     return success, result_dict
 
@@ -547,6 +557,9 @@ def parse_wos_xml(fname, global_year, good_acc=None, bad_acc=None):
             if ans[0]:
                 good_acc.append(ans[1])
             else:
+                msg = ' parse_wos_xml() : wos_id {0} failed ' \
+                      'to parse, placed in the bad heap'.format(ans[1]['id'])
+                logging.error(msg)
                 bad_acc.append(ans[1])
             root.clear()
     return good_acc, bad_acc
