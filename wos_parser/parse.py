@@ -36,6 +36,28 @@ def kill_trivial_namespace(s):
     return rline
 
 
+# TODO : modify gz on the fly
+def xml_remove_trivial_namespace(source):
+    if not hasattr(source, "read"):
+        source = open(source, "r+")
+    try:
+        offsets = []
+        while True:
+            # logging.warning(' before next')
+            line = next(source)
+            # logging.warning(' after next')
+            offsets.append(len(line))
+            if 'xmlns=' in line:
+                break
+        nline = kill_trivial_namespace(line)
+        # logging.warning(' after nline')
+        source.seek(sum(offsets[:-1]))
+        # logging.warning(' after seek')
+        source.write(nline)
+    except:
+        logging.error(' in xml_remove_trivial_namespace() : failed to modify the file')
+
+
 def etree_to_dict(t):
     # based on http://stackoverflow.com/questions/7684333/converting-xml-to-dictionary-using-elementtree
     children = t.getchildren()
