@@ -23,6 +23,6 @@ setup(
         "License :: OSI Approved :: BSD License",
     ],
     install_requires=[
-        'lxml'
+        'lxml', 'Cython'
     ],
 )
