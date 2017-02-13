@@ -28,4 +28,4 @@ if __name__ == "__main__":
     logging.basicConfig(filename=args.logfile, level=log_levels[args.verbosity],
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M')
-    main(args.sourcepath, args.year)
+    main(args.sourcepath, args.destpath, args.year)
