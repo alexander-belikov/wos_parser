@@ -23,9 +23,12 @@ if __name__ == "__main__":
                         default='./wos_parser.log',
                         help='Logfile path. Defaults to ./wos_parser.log')
 
+    parser.add_argument('-c', '--chunksize',
+                        default='100000', type=int,
+                        help='Chunk size of output (output list size). Defaults to 100000')
     args = parser.parse_args()
 
     logging.basicConfig(filename=args.logfile, level=log_levels[args.verbosity],
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M')
-    main(args.sourcepath, args.destpath, args.year)
+    main(args.sourcepath, args.destpath, args.year, args.chunksize)
