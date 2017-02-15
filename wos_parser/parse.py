@@ -114,7 +114,11 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
     success = all(list(map(lambda x: x[0], parsed_leaves)))
     jsonic_leaves = list(map(lambda x: x[1], parsed_leaves))
     if not success:
-        jsonic_leaves = etree_to_dict(branch)
+        # keys might be the same
+        jsonic_leaves = [etree_to_dict(branch)]
+        logging.error(' prune_branch() : in branch {0} with value {1} '
+                      'failed'.format(branch_path, jsonic_leaves))
+
     return success, jsonic_leaves
 
 
@@ -518,6 +522,10 @@ def parse_identifier(branch):
     try:
         dd = branch.attrib
         result_dict = {dd['type']: dd['value']}
+        if 'issn' in result_dict:
+            # issn2int triggers an exception issn_str is not correct
+            issn_int = issn2int(result_dict['issn'])
+            result_dict['issn_int'] = issn_int
     except:
         result_dict = etree_to_dict(branch)
         logging.error(' parse_identifier() : identifier attrib '
@@ -534,57 +542,56 @@ def parse_record(pub, global_year):
     addresses = prune_branch(pub, add_path, add_spec_path, parse_address)
     authors = prune_branch(pub, names_path, name_path, parse_name)
     pubtype = parse_pubtype(pub)
-    references = prune_branch(pub, references_path, reference_path,
-                              parse_reference, filter_false=True)
-
-    success = all(map(lambda x: x[0], [wosid, pubdate, addresses,
-                                       authors, references, pubtype]))
-
-    record_dict = {
-        'id': wosid[1],
-        'date': pubdate[1],
-        'addresses': addresses[1],
-        'authors': authors[1],
-        'references': references[1],
-        'properties': pubtype[1],
-    }
-
-    doctypes = prune_branch(pub, doctypes_path, doctype_path,
-                            parse_doctype, filter_false=True)
-
     idents = prune_branch(pub, identifiers_path, identifier_path,
-                          parse_identifier, filter_false=True)
-    for x in idents[1]:
-        record_dict['properties'].update(x)
-    record_dict['properties']['doctype'] = doctypes[1]
+                          parse_identifier)
 
+    success = all(map(lambda y: y[0], [wosid, pubdate, addresses,
+                                       authors, pubtype, idents]))
+    if success:
+        references = prune_branch(pub, references_path, reference_path,
+                                  parse_reference, filter_false=True)
+
+        doctypes = prune_branch(pub, doctypes_path, doctype_path,
+                                parse_doctype, filter_false=True)
+
+        prop_dict = pubtype[1]
+        for z in idents[1]:
+            prop_dict.update(z)
+
+        record_dict = {
+            'id': wosid[1],
+            'date': pubdate[1],
+            'addresses': addresses[1],
+            'authors': authors[1],
+            'references': references[1],
+            'properties': prop_dict,
+        }
+
+        record_dict['properties']['doctype'] = doctypes[1]
+    else:
+        record_dict = etree_to_dict(pub)
+        record_dict.update({'id': wosid[1]})
     return success, record_dict
 
 
-def parse_wos_xml(fname, global_year, good_acc=None, bad_acc=None):
+def parse_wos_xml(fp, global_year, good_cf, bad_cf):
     events = ('start', 'end')
-    tree = cET.iterparse(fname, events)
+    tree = cET.iterparse(fp, events)
     context = iter(tree)
     event, root = next(context)
     rec_ = 'REC'
-
-    if not good_acc:
-        good_acc = []
-    if not bad_acc:
-        bad_acc = []
 
     for event, pub in context:
         if event == "end" and pub.tag == rec_:
             ans = parse_record(pub, global_year)
             if ans[0]:
-                good_acc.append(ans[1])
+                good_cf.push(ans[1])
             else:
                 msg = ' parse_wos_xml() : wos_id {0} failed ' \
                       'to parse, placed in the bad heap'.format(ans[1]['id'])
                 logging.error(msg)
-                bad_acc.append(ans[1])
+                bad_cf.push(ans[1])
             root.clear()
-    return good_acc, bad_acc
 
 
 # TODO will be extended with affiliation stuff
@@ -603,14 +610,26 @@ def pdata2cdata(pdata, delta):
 
 
 def issn2int(issn_str):
-    pat = r'^\d{4}-\d{3}[\dxX]$'
-    # pat = r'^\d{4}-\d{3}$'
+    pat = r'^\d{4}-\d{3}[\dxXcC]$'
     p = compile(pat)
     if p.match(issn_str):
+        if is_int(issn_str[-1]):
+            res = 0
+            check = map(lambda x: int(x), issn_str[:4] + issn_str[5:8])
+            for pp in zip(check, range(8, 1, -1)):
+                res += pp[0]*pp[1]
+            rem = (11 - res) % 11
+            if rem != int(issn_str[-1]):
+                logging.error(' issn2int() : in issn {0} '
+                              'check bit is corrupt'.format(issn_str))
+
+                raise ValueError(' issn2int(): invalid check digit')
         return int(issn_str[0:4] + issn_str[5:8])
     else:
-        return -1
-        # raise ValueError('In issn2int(): issn_str does not match the pattern')
+        logging.error(' issn2int() : issn {0} : does not match '
+                      'the pattern'.format(issn_str))
+
+        raise ValueError(' issn2int(): invalid issn string')
 
 
 def is_int(x):
