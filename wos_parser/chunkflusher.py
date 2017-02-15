@@ -1,5 +1,6 @@
 import pickle
 import gzip
+from gc import collect
 
 class ChunkFlusher:
 
@@ -10,18 +11,19 @@ class ChunkFlusher:
         self.chunksize = chunksize
 
     def flush_chunk(self):
-        fp = gzip.open('{0}_{1}.pgz'.format(self.f_prefix, self.j), 'wb')
-        pickle.dump(self.acc, fp)
-        fp.close()
+        with gzip.open('{0}{1}.pgz'.format(self.f_prefix, self.j), 'wb') as fp:
+            pickle.dump(self.acc, fp)
 
     def check(self):
         if len(self.acc) > self.chunksize:
-            self.dump_chunk()
+            self.flush_chunk()
             self.j += 1
             self.acc = []
-        else:
-            self.j += 1
+            collect()
 
     def push(self, item):
         self.acc.append(item)
         self.check()
+
+    def items_processed(self):
+        return self.j*self.chunksize + len(self.acc)
