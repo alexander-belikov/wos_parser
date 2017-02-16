@@ -612,24 +612,29 @@ def pdata2cdata(pdata, delta):
 
 
 def issn2int(issn_str):
-    pat = r'^\d{4}-\d{3}[\dxXcC]$'
+    pat = r'^\d{4}-\d{3}[\dxX]$'
     p = compile(pat)
     if p.match(issn_str):
-        if is_int(issn_str[-1]):
-            res = 0
-            check = map(lambda x: int(x), issn_str[:4] + issn_str[5:8])
-            for pp in zip(check, range(8, 1, -1)):
-                res += pp[0]*pp[1]
-            rem = (11 - res) % 11
-            if rem != int(issn_str[-1]):
-                logging.error(' issn2int() : in issn {0} '
-                              'check bit is corrupt'.format(issn_str))
+        res = 0
+        check = map(lambda x: int(x), issn_str[:4] + issn_str[5:8])
+        check_bit = int(issn_str[-1]) if is_int(issn_str[-1]) else issn_str[-1]
+        for pp in zip(check, range(8, 1, -1)):
+            res += pp[0] * pp[1]
 
-                raise ValueError(' issn2int(): invalid check digit')
-        return int(issn_str[0:4] + issn_str[5:8])
+        rem = (11 - res) % 11
+        rem = 'X' if rem == 10 else rem
+
+        if rem == check_bit:
+            return int(issn_str[0:4] + issn_str[5:8])
+        else:
+            logging.error(' issn2int() : in issn {0} '
+                          'check bit is corrupt'.format(issn_str))
+            logging.error(' equal to {0}, should be {1}'.format(check_bit, rem))
+            raise ValueError(' issn2int(): invalid check digit'.format(check_bit, rem))
+
     else:
         logging.error(' issn2int() : issn {0} : does not match '
-                      'the pattern'.format(issn_str))
+                      'the pattern {1}'.format(issn_str, pat))
 
         raise ValueError(' issn2int(): invalid issn string')
 

@@ -3,7 +3,6 @@
 import logging
 import gzip
 from shutil import copyfileobj
-import pickle
 from os import listdir
 from os.path import isfile, join
 from .parse import parse_wos_xml, xml_remove_trivial_namespace
