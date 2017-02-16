@@ -43,4 +43,4 @@ if __name__ == "__main__":
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M')
 
-    main(args.sourcepath, args.destpath, args.year, args.chunksize)
+    main(args.sourcepath, args.destpath, args.year, maxchunks)
