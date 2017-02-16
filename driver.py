@@ -2,6 +2,7 @@ import argparse
 import logging
 from wos_parser.aux import log_levels
 from wos_parser.aux import main
+from wos_parser.parse import is_int
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -26,9 +27,20 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--chunksize',
                         default='100000', type=int,
                         help='Chunk size of output (output list size). Defaults to 100000')
+
+    parser.add_argument('-m', '--maxchunks',
+                        default='None',
+                        help='Maximum number of chunks. Defaults to None')
+
     args = parser.parse_args()
+
+    if is_int(args.maxchunks):
+        maxchunks = int(args.maxchunks)
+    else:
+        maxchunks = None
 
     logging.basicConfig(filename=args.logfile, level=log_levels[args.verbosity],
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M')
+
     main(args.sourcepath, args.destpath, args.year, args.chunksize)
