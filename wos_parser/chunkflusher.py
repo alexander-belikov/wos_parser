@@ -28,7 +28,7 @@ class ChunkFlusher:
         self.check()
 
     def ready(self):
-        if self.j < self.maxchunks:
+        if not (self.maxchunks and self.j >= self.maxchunks):
             return True
         else:
             return False
