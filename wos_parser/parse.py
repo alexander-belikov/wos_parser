@@ -591,6 +591,8 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf):
                       'to parse, placed in the bad heap'.format(ans[1]['id'])
                 logging.error(msg)
                 bad_cf.push(ans[1])
+            if not good_cf.ready() or not bad_cf.ready():
+                break
             root.clear()
 
 
