@@ -17,7 +17,7 @@ class ChunkFlusher:
                 pickle.dump(self.acc, fp)
 
     def check(self):
-        if len(self.acc) > self.chunksize:
+        if len(self.acc) >= self.chunksize:
             self.flush_chunk()
             self.j += 1
             self.acc = []
