@@ -47,5 +47,9 @@ doctypes_path = './static_data/summary/doctypes'
 doctype_path = 'doctype'
 
 # parse_language()
-languages_path = 'static_data/fullrecord_metadata/languages'
+languages_path = './static_data/fullrecord_metadata/languages'
 language_path = 'language'
+
+# parse_title()
+titles_path = './static_data/summary/titles'
+title_path = 'title'

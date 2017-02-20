@@ -18,6 +18,7 @@ from .xml_consts import references_path, reference_path, \
 
 from .xml_consts import doctype_path, doctypes_path
 from .xml_consts import identifiers_path, identifier_path
+from .xml_consts import titles_path, title_path
 from .xml_consts import languages_path, language_path
 
 from datetime import datetime
@@ -528,7 +529,28 @@ def parse_language(branch):
             value.update(branch.attrib)
     except:
         logging.error(' parse_language() : No text attr '
-                      'for doctype field')
+                      'for laguage field')
+        success = False
+        value = etree_to_dict(branch)
+    return success, value
+
+
+def parse_title(branch):
+    """
+
+    required:
+        title : str
+    optional:
+    """
+
+    success = True
+    try:
+        value = {'value': branch.text}
+        if branch.attrib:
+            value.update(branch.attrib)
+    except:
+        logging.error(' parse_title() : No text attr '
+                      'for title field')
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -580,6 +602,10 @@ def parse_record(pub, global_year):
 
         languages = prune_branch(pub, languages_path, language_path,
                                  parse_language, filter_false=True)
+
+        titles = prune_branch(pub, titles_path, title_path,
+                              parse_title, filter_false=True)
+
         prop_dict = pubtype[1]
         for z in idents[1]:
             prop_dict.update(z)
@@ -593,17 +619,36 @@ def parse_record(pub, global_year):
             'properties': prop_dict,
         }
 
+        record_dict['properties']['doctype'] = doctypes[1]
+
+        # language logic
+
         langs = list(map(lambda x: x['value'], languages[1]))
         primary_language = list(map(lambda x: x['value'],
                                     filter(lambda x: 'type' in x.keys() and
                                                      x['type'] == 'primary', languages[1])))
-
-        record_dict['properties']['doctype'] = doctypes[1]
+        # populate languages with a list
         record_dict['properties']['languages'] = langs
+
+        # populate primary_language with a primary language
+        # if not available, the first available
         if primary_language:
             record_dict['properties']['primary_language'] = primary_language[0]
-        else:
+        elif langs:
             record_dict['properties']['primary_language'] = langs[0]
+
+        item_title = list(map(lambda x: x['value'],
+                              filter(lambda x: 'type' in x.keys() and
+                                               x['type'] == 'item', titles[1])))
+        source_title = list(map(lambda x: x['value'],
+                                filter(lambda x: 'type' in x.keys() and
+                                                 x['type'] == 'source', titles[1])))
+
+        if item_title:
+            record_dict['properties']['item_title'] = item_title[0]
+
+        if source_title:
+            record_dict['properties']['source_title'] = source_title[0]
 
     else:
         record_dict = etree_to_dict(pub)
