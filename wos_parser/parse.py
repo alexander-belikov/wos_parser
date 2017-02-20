@@ -18,6 +18,7 @@ from .xml_consts import references_path, reference_path, \
 
 from .xml_consts import doctype_path, doctypes_path
 from .xml_consts import identifiers_path, identifier_path
+from .xml_consts import languages_path, language_path
 
 from datetime import datetime
 import logging
@@ -36,7 +37,7 @@ def kill_trivial_namespace(s):
     return rline
 
 
-# TODO : modify gz on the fly
+# TODO : is it possible to modify gz on the fly?
 def xml_remove_trivial_namespace(source):
     if not hasattr(source, "read"):
         source = open(source, "r+")
@@ -199,6 +200,7 @@ def parse_address(branch):
 
 
 def parse_name(branch):
+    #TODO clean up comment
     """
     expected name structure:
 
@@ -499,11 +501,33 @@ def parse_doctype(branch):
         pubtype : str
     optional:
     """
+
     success = True
     try:
         value = branch.text
     except:
         logging.error(' parse_doctype() : No text attr '
+                      'for doctype field')
+        success = False
+        value = etree_to_dict(branch)
+    return success, value
+
+
+def parse_language(branch):
+    """
+
+    required:
+        language : str
+    optional:
+    """
+
+    success = True
+    try:
+        value = {'value': branch.text}
+        if branch.attrib:
+            value.update(branch.attrib)
+    except:
+        logging.error(' parse_language() : No text attr '
                       'for doctype field')
         success = False
         value = etree_to_dict(branch)
@@ -554,6 +578,8 @@ def parse_record(pub, global_year):
         doctypes = prune_branch(pub, doctypes_path, doctype_path,
                                 parse_doctype, filter_false=True)
 
+        languages = prune_branch(pub, languages_path, language_path,
+                                 parse_language, filter_false=True)
         prop_dict = pubtype[1]
         for z in idents[1]:
             prop_dict.update(z)
@@ -567,7 +593,18 @@ def parse_record(pub, global_year):
             'properties': prop_dict,
         }
 
+        langs = list(map(lambda x: x['value'], languages[1]))
+        primary_language = list(map(lambda x: x['value'],
+                                    filter(lambda x: 'type' in x.keys() and
+                                                     x['type'] == 'primary', languages[1])))
+
         record_dict['properties']['doctype'] = doctypes[1]
+        record_dict['properties']['languages'] = langs
+        if primary_language:
+            record_dict['properties']['primary_language'] = primary_language[0]
+        else:
+            record_dict['properties']['primary_language'] = langs[0]
+
     else:
         record_dict = etree_to_dict(pub)
         record_dict.update({'id': wosid[1]})
