@@ -90,14 +90,14 @@ def parse_id(branch):
         id_ = branch.find(id_path)
 
         try:
-            result_dict = {'wosid': id_.text}
+            value = id_.text
         except:
             logging.error(' parse_id() : in branch {0} UID could not be parsed'.format(id_path))
             raise
     except:
         success = False
-        result_dict = etree_to_dict(branch)
-    return success, result_dict
+        value = etree_to_dict(branch)
+    return success, value
 
 
 def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
@@ -624,7 +624,7 @@ def parse_record(pub, global_year):
         # language logic
 
         langs = list(map(lambda x: x['value'], languages[1]))
-        primary_language = list(map(lambda x: x['value'],
+        primary_language = list(map(lambda y: y['value'],
                                     filter(lambda x: 'type' in x.keys() and
                                                      x['type'] == 'primary', languages[1])))
         # populate languages with a list
@@ -637,10 +637,10 @@ def parse_record(pub, global_year):
         elif langs:
             record_dict['properties']['primary_language'] = langs[0]
 
-        item_title = list(map(lambda x: x['value'],
+        item_title = list(map(lambda y: y['value'],
                               filter(lambda x: 'type' in x.keys() and
                                                x['type'] == 'item', titles[1])))
-        source_title = list(map(lambda x: x['value'],
+        source_title = list(map(lambda y: y['value'],
                                 filter(lambda x: 'type' in x.keys() and
                                                  x['type'] == 'source', titles[1])))
 
