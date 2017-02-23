@@ -124,14 +124,24 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
     return success, jsonic_leaves
 
 
-def add_optional_entry(input_dict, branch, entry_path, type=None):
+def add_optional_entry(input_dict, branch, entry_path, type=None, relaxed_type=True):
     elem = branch.find(entry_path)
+    update_dict = {}
+
     if elem != None:
         if type:
-            value = type(elem.text)
+            try:
+                value = type(elem.text)
+            except:
+                if relaxed_type:
+                    value = elem.text
+                else:
+                    value = None
         else:
             value = elem.text
-        input_dict.update({entry_path: value})
+        if value:
+            update_dict.update({entry_path: value})
+        input_dict.update(update_dict)
 
 
 def parse_address(branch):
@@ -289,12 +299,12 @@ def parse_reference(branch):
             raise
 
         # entries below are optional
-        add_optional_entry(result_dict, branch, year_path)
-        add_optional_entry(result_dict, branch, page_path)
+        add_optional_entry(result_dict, branch, year_path, int, relaxed_type=False)
+        add_optional_entry(result_dict, branch, volume_path, int)
+        add_optional_entry(result_dict, branch, page_path, int)
         add_optional_entry(result_dict, branch, cited_author_path)
         add_optional_entry(result_dict, branch, cited_title_path)
         add_optional_entry(result_dict, branch, cited_work_path)
-        add_optional_entry(result_dict, branch, volume_path)
     except:
         success = False
         result_dict = etree_to_dict(branch)
@@ -676,21 +686,6 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf):
             if not good_cf.ready() or not bad_cf.ready():
                 break
             root.clear()
-
-
-# TODO will be extended with affiliation stuff
-def pdata2cdata(pdata, delta):
-    """
-    pdata : list of publication data tuples
-    returns cdata: list of citation data tuples
-    cdata ~ # [wA, issn, [wBs]]
-    """
-    pdata_journals = list(filter(lambda x: x['pub_type'] == 'Journal'
-                                      and 'issn' in x['pub_identifiers'].keys(), pdata))
-    cdata = list(map(lambda x: (x['id'], issn2int(x['pub_identifiers']['issn']),
-                                map(lambda z: z[0], list(filter(lambda y: y[1] >= x['year'] - delta, x['refs'])))),
-                     pdata_journals))
-    return cdata
 
 
 def issn2int(issn_str):

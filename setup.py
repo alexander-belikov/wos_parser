@@ -14,7 +14,7 @@ setup(
     description="tools for parsing xmls of web of science data",
     license="BSD",
     keywords="xml",
-    url="git@github.com:alexander-belikov/wos_parse.git",
+    url="git@github.com:alexander-belikov/wos_parser.git",
     packages=['wos_parser'],
     long_description=read('README'),
     classifiers=[
@@ -24,5 +24,5 @@ setup(
     ],
     install_requires=[
         'lxml', 'Cython'
-    ],
+    ]
 )
