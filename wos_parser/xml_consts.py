@@ -11,6 +11,7 @@ zipcode_path = 'zip'
 street_path = 'street'
 org_path = './organizations/organization'
 add_no_key = 'addr_no'
+seq_no = 'seq_no'
 
 # parse_name()
 names_path = './static_data/summary/names'
