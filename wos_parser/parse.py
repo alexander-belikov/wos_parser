@@ -12,6 +12,8 @@ from .xml_consts import add_path
 from .xml_consts import names_path, name_path, display_name_path, \
     email_path, lastname_path, firstname_path, wos_standard_path
 
+from .xml_consts import seq_no
+
 from .xml_consts import references_path, reference_path, \
     uid_path, year_path, page_path, cited_author_path, cited_work_path, \
     cited_title_path, volume_path
@@ -259,6 +261,16 @@ def parse_name(branch):
             except:
                 logging.error(' parse_name() : address numbers string parsing failure:')
                 logging.error(etree_to_dict(branch))
+
+        if seq_no not in result_dict.keys():
+            result_dict[add_no_key] = 0
+        else:
+            try:
+                result_dict[seq_no] = int(result_dict[seq_no])
+            except:
+                logging.error(' parse_name() : address numbers string parsing failure:')
+                logging.error(etree_to_dict(branch))
+
 
     except:
         success = False
