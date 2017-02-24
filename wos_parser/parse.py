@@ -221,13 +221,11 @@ def parse_name(branch):
 
     optional:
         wos_standard: str
-        full_address : str
-        organization synonyms : list of str
-        country : str
-        city : str
-        state : str
-        zipcode : str
-        street : str
+        name : str
+        lastname : str
+        firstname : str
+        email : str
+        attribs : ('dais_id', 'role', 'seq_no')
     """
     success = True
 
@@ -590,6 +588,45 @@ def parse_identifier(branch):
     return success, result_dict
 
 
+def process_languages(languages):
+    result_dict = {}
+
+    langueges_list = list(map(lambda x: x['value'], languages[1]))
+    primary_language = list(map(lambda y: y['value'],
+                                filter(lambda x: 'type' in x.keys() and
+                                                 x['type'] == 'primary', languages[1])))
+    # populate languages with a list
+    result_dict['languages'] = langueges_list
+
+    # populate primary_language with a primary language
+    # if not available, the first available
+    if primary_language:
+        result_dict['primary_language'] = primary_language[0]
+    elif langueges_list:
+        result_dict['primary_language'] = langueges_list[0]
+
+    return result_dict
+
+
+def process_titles(titles):
+
+    result_dict = {}
+
+    item_title = list(map(lambda y: y['value'],
+                          filter(lambda x: 'type' in x.keys() and
+                                           x['type'] == 'item', titles[1])))
+    source_title = list(map(lambda y: y['value'],
+                            filter(lambda x: 'type' in x.keys() and
+                                             x['type'] == 'source', titles[1])))
+    if item_title:
+        result_dict['item_title'] = item_title[0]
+
+    if source_title:
+        result_dict['source_title'] = source_title[0]
+
+    return result_dict
+
+
 def parse_record(pub, global_year):
 
     wosid = parse_id(pub)
@@ -612,13 +649,19 @@ def parse_record(pub, global_year):
 
         languages = prune_branch(pub, languages_path, language_path,
                                  parse_language, filter_false=True)
+        language_dict = process_languages(languages)
 
         titles = prune_branch(pub, titles_path, title_path,
                               parse_title, filter_false=True)
+        titles_dict = process_titles(titles)
 
         prop_dict = pubtype[1]
         for z in idents[1]:
             prop_dict.update(z)
+
+        prop_dict.update(language_dict)
+        prop_dict.update(titles_dict)
+        prop_dict.update({'doctype': doctypes[1]})
 
         record_dict = {
             'id': wosid[1],
@@ -629,36 +672,6 @@ def parse_record(pub, global_year):
             'properties': prop_dict,
         }
 
-        record_dict['properties']['doctype'] = doctypes[1]
-
-        # language logic
-
-        langs = list(map(lambda x: x['value'], languages[1]))
-        primary_language = list(map(lambda y: y['value'],
-                                    filter(lambda x: 'type' in x.keys() and
-                                                     x['type'] == 'primary', languages[1])))
-        # populate languages with a list
-        record_dict['properties']['languages'] = langs
-
-        # populate primary_language with a primary language
-        # if not available, the first available
-        if primary_language:
-            record_dict['properties']['primary_language'] = primary_language[0]
-        elif langs:
-            record_dict['properties']['primary_language'] = langs[0]
-
-        item_title = list(map(lambda y: y['value'],
-                              filter(lambda x: 'type' in x.keys() and
-                                               x['type'] == 'item', titles[1])))
-        source_title = list(map(lambda y: y['value'],
-                                filter(lambda x: 'type' in x.keys() and
-                                                 x['type'] == 'source', titles[1])))
-
-        if item_title:
-            record_dict['properties']['item_title'] = item_title[0]
-
-        if source_title:
-            record_dict['properties']['source_title'] = source_title[0]
 
     else:
         record_dict = etree_to_dict(pub)
