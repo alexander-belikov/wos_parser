@@ -32,6 +32,7 @@ cited_author_path = 'citedAuthor'
 cited_title_path = 'citedTitle'
 cited_work_path = 'citedWork'
 volume_path = 'volume'
+doi_path = 'doi'
 
 # parse_date()
 pubinfo_path = './static_data/summary/pub_info'
@@ -54,3 +55,27 @@ language_path = 'language'
 # parse_title()
 titles_path = './static_data/summary/titles'
 title_path = 'title'
+
+# parse_keywords()
+keywords_path = './static_data/fullrecord_metadata/keywords'
+keyword_path = './keyword'
+
+# headings
+headings_path = './static_data/fullrecord_metadata/category_info/headings'
+heading_path = './heading'
+
+# subheadings
+subheadings_path = './static_data/fullrecord_metadata/category_info/subheadings'
+subheading_path = './subheading'
+
+# subjects
+subjects_path = './static_data/fullrecord_metadata/category_info/subjects'
+subject_path = './subject'
+
+# abstracts
+abstracts_path = './static_data/fullrecord_metadata/category_info/abstracts'
+abstract_path = './abstract/abstract_text'
+# abstract_paragraph_path = './p'
+
+
+

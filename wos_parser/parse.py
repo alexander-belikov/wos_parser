@@ -16,7 +16,12 @@ from .xml_consts import seq_no
 
 from .xml_consts import references_path, reference_path, \
     uid_path, year_path, page_path, cited_author_path, cited_work_path, \
-    cited_title_path, volume_path
+    cited_title_path, volume_path, doi_path
+
+from .xml_consts import keywords_path, keyword_path
+from .xml_consts import headings_path, heading_path
+from .xml_consts import subheadings_path, subheading_path
+from .xml_consts import subjects_path, subject_path
 
 from .xml_consts import doctype_path, doctypes_path
 from .xml_consts import identifiers_path, identifier_path
@@ -24,6 +29,8 @@ from .xml_consts import titles_path, title_path
 from .xml_consts import languages_path, language_path
 
 from datetime import datetime
+from hashlib import sha1
+
 import logging
 from itertools import filterfalse
 
@@ -103,37 +110,44 @@ def parse_id(branch):
 
 
 def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
+
     branch = pub.find(branch_path)
-    leaves = branch.findall(leaf_path)
-    # parsed_leaves = list(filter(lambda x: x, map(parse_func, leaves)))
-    parsed_leaves = list(map(parse_func, leaves))
+    if branch:
+        leaves = branch.findall(leaf_path)
+        parsed_leaves = list(map(parse_func, leaves))
 
-    if filter_false:
-        left_out = list(map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves)))
-        if len(left_out) > 0:
-            logging.error(' prune_branch() : in branch {0} {1} leaf(ves) were '
-                          'filtered out.'.format(branch_path, len(left_out)))
-        parsed_leaves = list(filter(lambda x: x[0], parsed_leaves))
+        if filter_false:
+            left_out = list(map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves)))
+            if len(left_out) > 0:
+                logging.error(' prune_branch() : in branch {0} {1} leaf(ves) were '
+                              'filtered out.'.format(branch_path, len(left_out)))
+            parsed_leaves = list(filter(lambda x: x[0], parsed_leaves))
 
-    success = all(list(map(lambda x: x[0], parsed_leaves)))
-    jsonic_leaves = list(map(lambda x: x[1], parsed_leaves))
-    if not success:
-        # keys might be the same
-        jsonic_leaves = [etree_to_dict(branch)]
-        logging.error(' prune_branch() : in branch {0} with value {1} '
-                      'failed'.format(branch_path, jsonic_leaves))
+        success = all(list(map(lambda x: x[0], parsed_leaves)))
+        jsonic_leaves = list(map(lambda x: x[1], parsed_leaves))
+        if not success:
+            # keys might be the same
+            jsonic_leaves = [etree_to_dict(branch)]
+            logging.error(' prune_branch() : parse failed in branch {0} with value {1} '
+                          .format(branch_path, jsonic_leaves))
+    else:
+        success = False
+        jsonic_leaves = None
+        logging.error(' prune_branch() : parse failed in branch {0} with value {1} : empty branch'
+                      .format(branch_path, jsonic_leaves))
 
     return success, jsonic_leaves
 
 
-def add_optional_entry(input_dict, branch, entry_path, type=None, relaxed_type=True):
+def add_optional_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=True,
+                       name_suffix=None):
     elem = branch.find(entry_path)
     update_dict = {}
 
     if elem != None:
         if type:
             try:
-                value = type(elem.text)
+                value = force_type(elem.text)
             except:
                 if relaxed_type:
                     value = elem.text
@@ -142,7 +156,11 @@ def add_optional_entry(input_dict, branch, entry_path, type=None, relaxed_type=T
         else:
             value = elem.text
         if value:
-            update_dict.update({entry_path: value})
+            if name_suffix:
+                name = entry_path + name_suffix
+            else:
+                name = entry_path
+            update_dict.update({name: value})
         input_dict.update(update_dict)
 
 
@@ -220,6 +238,7 @@ def parse_name(branch):
     required:
         display_name : str
         add_no : int (if more than one address)
+        seq_no : int
 
     optional:
         wos_standard: str
@@ -270,8 +289,6 @@ def parse_name(branch):
             except:
                 logging.error(' parse_name() : address numbers string parsing failure:')
                 logging.error(etree_to_dict(branch))
-
-
     except:
         success = False
         result_dict = etree_to_dict(branch)
@@ -297,28 +314,46 @@ def parse_reference(branch):
     success = True
     try:
         result_dict = {}
-
-        # possible exception if uid is not available
-        uid = branch.find(uid_path)
-        # if display_name != None:
-        try:
-            result_dict.update({uid_path: uid.text})
-        except:
-            logging.error(' parse_reference() : uid field absent:')
-            logging.error(etree_to_dict(branch))
-            raise
-
-        # entries below are optional
-        add_optional_entry(result_dict, branch, year_path, int, relaxed_type=False)
+        add_optional_entry(result_dict, branch, year_path, int)
+        add_optional_entry(result_dict, branch, year_path, name_suffix='_str')
         add_optional_entry(result_dict, branch, volume_path, int)
         add_optional_entry(result_dict, branch, page_path, int)
+        add_optional_entry(result_dict, branch, doi_path)
         add_optional_entry(result_dict, branch, cited_author_path)
         add_optional_entry(result_dict, branch, cited_title_path)
         add_optional_entry(result_dict, branch, cited_work_path)
+
+        try:
+            uid = branch.find(uid_path)
+            uid_value = uid.text
+        except:
+            logging.error(' parse_reference() : uid field absent:')
+            logging.error(' parse_reference() : adding ROG id')
+            if doi_path in result_dict.keys():
+                uid_value = result_dict[doi_path]
+            elif cited_title_path in result_dict.keys():
+                value = sha1(result_dict[cited_title_path].encode('utf-8')).hexdigest()
+                uid_value = 'ROG:' + value
+            elif cited_author_path in result_dict.keys() \
+                    and year_path+'+str' in result_dict.keys() \
+                    and cited_work_path in result_dict.keys():
+                str_combo = ' '.join([result_dict[cited_author_path],
+                                      result_dict[year_path+'str'], result_dict[cited_work_path]])
+                value = sha1(str_combo.encode('utf-8')).hexdigest()
+                uid_value = 'ROG:' + value
+            else:
+                logging.error(' parse_reference() : uid assignment failed')
+                raise
+
+        result_dict.update({uid_path: uid_value})
     except:
         success = False
         result_dict = etree_to_dict(branch)
-        # result_dict = etree_to_dict(branch)[reference_path]
+        if not result_dict['reference']:
+            logging.error(' parse_reference() : empty reference')
+        else:
+            result_dict = etree_to_dict(branch)[reference_path]
+            logging.error(result_dict)
     return success, result_dict
 
 
@@ -555,6 +590,24 @@ def parse_language(branch):
     return success, value
 
 
+def parse_generic(branch):
+    """
+
+    required:
+        keyword : str
+    optional:
+    """
+
+    success = True
+    try:
+        value = branch.text
+    except:
+        logging.error(' parse_generic() : No text attr for keyword field')
+        success = False
+        value = None
+    return success, value
+
+
 def parse_title(branch):
     """
 
@@ -642,17 +695,17 @@ def process_titles(titles):
 def parse_record(pub, global_year):
 
     wosid = parse_id(pub)
-
     pubdate = parse_date(pub, global_year)
-    addresses = prune_branch(pub, add_path, add_spec_path, parse_address)
     authors = prune_branch(pub, names_path, name_path, parse_name)
     pubtype = parse_pubtype(pub)
     idents = prune_branch(pub, identifiers_path, identifier_path,
                           parse_identifier)
 
-    success = all(map(lambda y: y[0], [wosid, pubdate, addresses,
+    success = all(map(lambda y: y[0], [wosid, pubdate,
                                        authors, pubtype, idents]))
     if success:
+        addresses = prune_branch(pub, add_path, add_spec_path, parse_address)
+
         references = prune_branch(pub, references_path, reference_path,
                                   parse_reference, filter_false=True)
 
@@ -666,6 +719,21 @@ def parse_record(pub, global_year):
         titles = prune_branch(pub, titles_path, title_path,
                               parse_title, filter_false=True)
         titles_dict = process_titles(titles)
+        keywords = prune_branch(pub, keywords_path, keyword_path,
+                                parse_generic, filter_false=True)
+
+        headings = prune_branch(pub, headings_path, heading_path,
+                                parse_generic, filter_false=True)
+
+        subheadings = prune_branch(pub, subheadings_path, subheading_path,
+                                   parse_generic, filter_false=True)
+
+        subjects = prune_branch(pub, subjects_path, subject_path,
+                                parse_generic, filter_false=True)
+
+        # abstracts = prune_branch(pub, keywords_path, keyword_path,
+        #                         parse_generic, filter_false=True)
+
 
         prop_dict = pubtype[1]
         for z in idents[1]:
@@ -675,6 +743,16 @@ def parse_record(pub, global_year):
         prop_dict.update(titles_dict)
         prop_dict.update({'doctype': doctypes[1]})
 
+        extras_dict = {}
+        if keywords[0]:
+            extras_dict.update({'keywords': keywords[1]})
+        if headings[0]:
+            extras_dict.update({'headings': headings[1]})
+        if subheadings[0]:
+            extras_dict.update({'subheadings': subheadings[1]})
+        if subjects[0]:
+            extras_dict.update({'subjects': subjects[1]})
+
         record_dict = {
             'id': wosid[1],
             'date': pubdate[1],
@@ -682,8 +760,8 @@ def parse_record(pub, global_year):
             'authors': authors[1],
             'references': references[1],
             'properties': prop_dict,
+            'extras': extras_dict
         }
-
 
     else:
         record_dict = etree_to_dict(pub)
