@@ -29,6 +29,7 @@ from .xml_consts import titles_path, title_path
 from .xml_consts import languages_path, language_path
 from .xml_consts import abstracts_path, abstract_path, abstract_paragraph_path
 from .xml_consts import grants_path, grant_path, grant_agency_path
+from .xml_consts import fundtext_path, fundtext_paragraph_path
 
 from datetime import datetime
 from hashlib import sha1
@@ -565,6 +566,28 @@ def parse_abstract(branch):
     return success, value
 
 
+def parse_fundtext(pub):
+    """
+
+    required:
+        pubtype : str
+    optional:
+    """
+    success = True
+    try:
+        branch = pub.find(fundtext_path)
+        paragraphs_ = branch.findall(fundtext_paragraph_path)
+        paragraphs = map(lambda x: x.text, paragraphs_)
+        # if paragraphs:
+        value = ' '.join(paragraphs)
+    except:
+        logging.error(' parse_fundtext() : fundtext absent '
+                      'in path {0}'.format(pubinfo_path))
+        success = False
+        value = etree_to_dict(pub)
+    return success, value
+
+
 def parse_grant(branch):
     """
 
@@ -768,7 +791,13 @@ def parse_record(pub, global_year):
         abstracts = prune_branch(pub, abstracts_path, abstract_path,
                                  parse_abstract, filter_false=True)
 
+        grant_agencies = prune_branch(pub, grants_path, grant_path,
+                                      parse_grant, filter_false=True)
+
+        fund_text = parse_fundtext(pub)
+
         idents_flat = [item for sublist in idents[1] for item in sublist]
+
         prop_dict = {x: y for x, y in idents_flat}
 
         if pubtype[0]:
@@ -789,6 +818,10 @@ def parse_record(pub, global_year):
             prop_dict.update({'subjects': list(set(subjects[1]))})
         if abstracts[0]:
             prop_dict.update({'abstracts': abstracts[1]})
+        if grant_agencies[0]:
+            prop_dict.update({'grant_agencies': grant_agencies[1]})
+        if fund_text[0]:
+            prop_dict.update({'fund_text': fund_text[1]})
 
         record_dict = {
             'id': wosid[1],
