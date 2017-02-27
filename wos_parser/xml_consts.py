@@ -77,5 +77,9 @@ abstracts_path = './static_data/fullrecord_metadata/abstracts'
 abstract_path = './abstract'
 abstract_paragraph_path = './abstract_text/p'
 
+# grants
+grants_path = './static_data/fullrecord_metadata/fund_ack/grants'
+grant_path = './grant'
+grant_agency_path = './grant_agency'
 
 

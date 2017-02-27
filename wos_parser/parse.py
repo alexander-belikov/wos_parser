@@ -28,6 +28,7 @@ from .xml_consts import identifiers_path, identifier_path
 from .xml_consts import titles_path, title_path
 from .xml_consts import languages_path, language_path
 from .xml_consts import abstracts_path, abstract_path, abstract_paragraph_path
+from .xml_consts import grants_path, grant_path, grant_agency_path
 
 from datetime import datetime
 from hashlib import sha1
@@ -557,11 +558,30 @@ def parse_abstract(branch):
     try:
         paragraphs_ = branch.findall(abstract_paragraph_path)
         paragraphs = map(lambda x: x.text, paragraphs_)
-        result = ' '.join(paragraphs)
+        value = ' '.join(paragraphs)
     except:
         success = False
-        result = etree_to_dict(branch)
-    return success, result
+        value = etree_to_dict(branch)
+    return success, value
+
+
+def parse_grant(branch):
+    """
+
+    required:
+        pubtype : str
+    optional:
+    """
+
+    success = True
+    try:
+        value = branch.find(grant_agency_path).text
+    except:
+        logging.error(' parse_grant() : No text attr '
+                      'for grant_agency_path field')
+        success = False
+        value = etree_to_dict(branch)
+    return success, value
 
 
 def parse_doctype(branch):
@@ -654,17 +674,17 @@ def parse_identifier(branch):
     success = True
     try:
         dd = branch.attrib
-        result_dict = {dd['type']: dd['value']}
-        if 'issn' in result_dict:
+        result_pair = [(dd['type'], dd['value'])]
+        if result_pair[0][0] == 'issn':
             # issn2int triggers an exception issn_str is not correct
-            issn_int = issn2int(result_dict['issn'])
-            result_dict['issn_int'] = issn_int
+            issn_int = issn2int(result_pair[0][1])
+            result_pair.append(('issn_int', issn_int))
     except:
         result_dict = etree_to_dict(branch)
         logging.error(' parse_identifier() : identifier attrib '
                       'parse failed : {0}'.format(result_dict))
         success = False
-    return success, result_dict
+    return success, result_pair
 
 
 def process_languages(languages):
@@ -748,25 +768,27 @@ def parse_record(pub, global_year):
         abstracts = prune_branch(pub, abstracts_path, abstract_path,
                                  parse_abstract, filter_false=True)
 
-        prop_dict = pubtype[1]
-        for z in idents[1]:
-            prop_dict.update(z)
+        idents_flat = [item for sublist in idents[1] for item in sublist]
+        prop_dict = {x: y for x, y in idents_flat}
 
-        prop_dict.update(language_dict)
-        prop_dict.update(titles_dict)
-        prop_dict.update({'doctype': doctypes[1]})
-
-        extras_dict = {}
+        if pubtype[0]:
+            prop_dict.update(pubtype[1])
+        if languages[0]:
+            prop_dict.update(language_dict)
+        if titles[0]:
+            prop_dict.update(titles_dict)
+        if doctypes[0]:
+            prop_dict.update({'doctype': doctypes[1]})
         if keywords[0]:
-            extras_dict.update({'keywords': keywords[1]})
+            prop_dict.update({'keywords': keywords[1]})
         if headings[0]:
-            extras_dict.update({'headings': headings[1]})
+            prop_dict.update({'headings': headings[1]})
         if subheadings[0]:
-            extras_dict.update({'subheadings': subheadings[1]})
+            prop_dict.update({'subheadings': subheadings[1]})
         if subjects[0]:
-            extras_dict.update({'subjects': list(set(subjects[1]))})
+            prop_dict.update({'subjects': list(set(subjects[1]))})
         if abstracts[0]:
-            extras_dict.update({'abstracts': abstracts[1]})
+            prop_dict.update({'abstracts': abstracts[1]})
 
         record_dict = {
             'id': wosid[1],
@@ -775,7 +797,6 @@ def parse_record(pub, global_year):
             'authors': authors[1],
             'references': references[1],
             'properties': prop_dict,
-            'extras': extras_dict
         }
 
     else:
