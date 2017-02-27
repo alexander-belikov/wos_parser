@@ -27,6 +27,7 @@ from .xml_consts import doctype_path, doctypes_path
 from .xml_consts import identifiers_path, identifier_path
 from .xml_consts import titles_path, title_path
 from .xml_consts import languages_path, language_path
+from .xml_consts import abstracts_path, abstract_path, abstract_paragraph_path
 
 from datetime import datetime
 from hashlib import sha1
@@ -133,7 +134,7 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
     else:
         success = False
         jsonic_leaves = None
-        logging.error(' prune_branch() : parse failed in branch {0} with value {1} : empty branch'
+        logging.error(' prune_branch() : empty branch parse: failed in branch {0} with value {1}'
                       .format(branch_path, jsonic_leaves))
 
     return success, jsonic_leaves
@@ -550,6 +551,19 @@ def parse_pubtype(branch):
     return success, result_dict
 
 
+def parse_abstract(branch):
+
+    success = True
+    try:
+        paragraphs_ = branch.findall(abstract_paragraph_path)
+        paragraphs = map(lambda x: x.text, paragraphs_)
+        result = ' '.join(paragraphs)
+    except:
+        success = False
+        result = etree_to_dict(branch)
+    return success, result
+
+
 def parse_doctype(branch):
     """
 
@@ -731,9 +745,8 @@ def parse_record(pub, global_year):
         subjects = prune_branch(pub, subjects_path, subject_path,
                                 parse_generic, filter_false=True)
 
-        # abstracts = prune_branch(pub, keywords_path, keyword_path,
-        #                         parse_generic, filter_false=True)
-
+        abstracts = prune_branch(pub, abstracts_path, abstract_path,
+                                 parse_abstract, filter_false=True)
 
         prop_dict = pubtype[1]
         for z in idents[1]:
@@ -751,7 +764,9 @@ def parse_record(pub, global_year):
         if subheadings[0]:
             extras_dict.update({'subheadings': subheadings[1]})
         if subjects[0]:
-            extras_dict.update({'subjects': subjects[1]})
+            extras_dict.update({'subjects': list(set(subjects[1]))})
+        if abstracts[0]:
+            extras_dict.update({'abstracts': abstracts[1]})
 
         record_dict = {
             'id': wosid[1],

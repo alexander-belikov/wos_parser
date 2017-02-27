@@ -73,9 +73,9 @@ subjects_path = './static_data/fullrecord_metadata/category_info/subjects'
 subject_path = './subject'
 
 # abstracts
-abstracts_path = './static_data/fullrecord_metadata/category_info/abstracts'
-abstract_path = './abstract/abstract_text'
-# abstract_paragraph_path = './p'
+abstracts_path = './static_data/fullrecord_metadata/abstracts'
+abstract_path = './abstract'
+abstract_paragraph_path = './abstract_text/p'
 
 
 
