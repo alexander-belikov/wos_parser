@@ -69,7 +69,8 @@ def xml_remove_trivial_namespace(source):
         # logging.warning(' after seek')
         source.write(nline)
     except:
-        logging.error(' in xml_remove_trivial_namespace() : failed to modify the file')
+        logging.error(' in xml_remove_trivial_namespace() : '
+                      'failed to modify the file')
 
 
 def etree_to_dict(t):
@@ -104,7 +105,8 @@ def parse_id(branch):
         try:
             value = id_.text
         except:
-            logging.error(' parse_id() : in branch {0} UID could not be parsed'.format(id_path))
+            logging.error(' parse_id() : in branch {0} '
+                          'UID could not be parsed'.format(id_path))
             raise
     except:
         success = False
@@ -122,7 +124,7 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
         if filter_false:
             left_out = list(map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves)))
             if len(left_out) > 0:
-                logging.error(' prune_branch() : in branch {0} {1} leaf(ves) were '
+                logging.info(' prune_branch() : in branch {0} {1} leaf(ves) were '
                               'filtered out.'.format(branch_path, len(left_out)))
             parsed_leaves = list(filter(lambda x: x[0], parsed_leaves))
 
@@ -131,13 +133,13 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
         if not success:
             # keys might be the same
             jsonic_leaves = [etree_to_dict(branch)]
-            logging.error(' prune_branch() : parse failed in branch {0} with value {1} '
+            logging.info(' prune_branch() : parse failed in branch {0} with value {1} '
                           .format(branch_path, jsonic_leaves))
     else:
         success = False
         jsonic_leaves = None
-        logging.error(' prune_branch() : empty branch parse: failed in branch {0} with value {1}'
-                      .format(branch_path, jsonic_leaves))
+        logging.info(' prune_branch() : empty branch parse: failed in branch {0} with value {1}'
+                     .format(branch_path, jsonic_leaves))
 
     return success, jsonic_leaves
 
@@ -290,7 +292,7 @@ def parse_name(branch):
             try:
                 result_dict[seq_no] = int(result_dict[seq_no])
             except:
-                logging.error(' parse_name() : address numbers string parsing failure:')
+                logging.error(' parse_name() : sequence number could not be extracted :')
                 logging.error(etree_to_dict(branch))
     except:
         success = False
@@ -353,10 +355,11 @@ def parse_reference(branch):
         success = False
         result_dict = etree_to_dict(branch)
         if not result_dict['reference']:
-            logging.error(' parse_reference() : empty reference')
+            logging.warning(' parse_reference() : empty reference')
         else:
             result_dict = etree_to_dict(branch)[reference_path]
-            logging.error(result_dict)
+            logging.warning(' parse_reference() : corrupt reference :')
+            logging.warning(result_dict)
     return success, result_dict
 
 
@@ -581,7 +584,7 @@ def parse_fundtext(pub):
         # if paragraphs:
         value = ' '.join(paragraphs)
     except:
-        logging.error(' parse_fundtext() : fundtext absent '
+        logging.info(' parse_fundtext() : fundtext absent '
                       'in path {0}'.format(pubinfo_path))
         success = False
         value = etree_to_dict(pub)
@@ -600,7 +603,7 @@ def parse_grant(branch):
     try:
         value = branch.find(grant_agency_path).text
     except:
-        logging.error(' parse_grant() : No text attr '
+        logging.info(' parse_grant() : No text attr '
                       'for grant_agency_path field')
         success = False
         value = etree_to_dict(branch)
@@ -640,8 +643,8 @@ def parse_language(branch):
         if branch.attrib:
             value.update(branch.attrib)
     except:
-        logging.error(' parse_language() : No text attr '
-                      'for laguage field')
+        logging.info(' parse_language() : No text attr '
+                      'for language field')
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -659,7 +662,7 @@ def parse_generic(branch):
     try:
         value = branch.text
     except:
-        logging.error(' parse_generic() : No text attr for keyword field')
+        logging.info(' parse_generic() : No text attr for keyword field')
         success = False
         value = None
     return success, value
@@ -679,7 +682,7 @@ def parse_title(branch):
         if branch.attrib:
             value.update(branch.attrib)
     except:
-        logging.error(' parse_title() : No text attr '
+        logging.warn(' parse_title() : No text attr '
                       'for title field')
         success = False
         value = etree_to_dict(branch)
@@ -703,9 +706,9 @@ def parse_identifier(branch):
             issn_int = issn2int(result_pair[0][1])
             result_pair.append(('issn_int', issn_int))
     except:
-        result_dict = etree_to_dict(branch)
+        result_pair = etree_to_dict(branch)
         logging.error(' parse_identifier() : identifier attrib '
-                      'parse failed : {0}'.format(result_dict))
+                      'parse failed : {0}'.format(result_pair))
         success = False
     return success, result_pair
 

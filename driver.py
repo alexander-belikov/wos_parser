@@ -17,8 +17,8 @@ if __name__ == "__main__":
                         help='Global year setting')
 
     parser.add_argument('-v', '--verbosity',
-                        default='INFO',
-                        help='set level of verbosity, DEBUG, INFO, WARN')
+                        default='ERROR',
+                        help='set level of verbosity, DEBUG, INFO, WARNING, ERROR')
 
     parser.add_argument('-l', '--logfile',
                         default='./wos_parser.log',
