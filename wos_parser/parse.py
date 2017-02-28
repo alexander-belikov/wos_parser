@@ -137,7 +137,7 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
                           .format(branch_path, jsonic_leaves))
     else:
         success = False
-        jsonic_leaves = None
+        jsonic_leaves = []
         logging.info(' prune_branch() : empty branch parse: failed in branch {0} with value {1}'
                      .format(branch_path, jsonic_leaves))
 
