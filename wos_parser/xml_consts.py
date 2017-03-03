@@ -11,7 +11,8 @@ zipcode_path = 'zip'
 street_path = 'street'
 org_path = './organizations/organization'
 add_no_key = 'addr_no'
-seq_no = 'seq_no'
+seq_no_key = 'seq_no'
+role_key = 'role'
 
 # parse_name()
 names_path = './static_data/summary/names'
@@ -58,31 +59,47 @@ title_path = 'title'
 
 # parse_keywords()
 keywords_path = './static_data/fullrecord_metadata/keywords'
-keyword_path = './keyword'
+keyword_path = 'keyword'
 
 # headings
 headings_path = './static_data/fullrecord_metadata/category_info/headings'
-heading_path = './heading'
+heading_path = 'heading'
 
 # subheadings
 subheadings_path = './static_data/fullrecord_metadata/category_info/subheadings'
-subheading_path = './subheading'
+subheading_path = 'subheading'
 
 # subjects
 subjects_path = './static_data/fullrecord_metadata/category_info/subjects'
-subject_path = './subject'
+subject_path = 'subject'
 
 # abstracts
 abstracts_path = './static_data/fullrecord_metadata/abstracts'
-abstract_path = './abstract'
+abstract_path = 'abstract'
 abstract_paragraph_path = './abstract_text/p'
 
 # grants
 grants_path = './static_data/fullrecord_metadata/fund_ack/grants'
-grant_path = './grant'
-grant_agency_path = './grant_agency'
+grant_path = 'grant'
+grant_agency_path = 'grant_agency'
 
 # func text
 fundtext_path = './static_data/fullrecord_metadata/fund_ack/fund_text'
-fundtext_paragraph_path = './p'
+fundtext_paragraph_path = 'p'
 
+# conferences
+conferences_path = './static_data/conferences'
+conference_path = './conference'
+conf_info_path = './conf_infos/conf_info'
+conf_title_path = './conf_titles/conf_title'
+conf_date_path = './conf_dates/conf_date'
+conf_location_path = './conf_locations/conf_location'
+conf_sponsor_path = './sponsors/sponsor'
+
+publishers_path = './static_data/summary/publishers'
+publisher_path = './publisher'
+publisher_address_spec_path = './address_spec'
+publisher_full_address_path = 'full_address'
+publisher_city_path = 'city'
+publisher_name_path = './names/name'
+# publisher_display_name == display_name_path

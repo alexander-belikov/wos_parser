@@ -12,7 +12,7 @@ from .xml_consts import add_path
 from .xml_consts import names_path, name_path, display_name_path, \
     email_path, lastname_path, firstname_path, wos_standard_path
 
-from .xml_consts import seq_no
+from .xml_consts import seq_no_key
 
 from .xml_consts import references_path, reference_path, \
     uid_path, year_path, page_path, cited_author_path, cited_work_path, \
@@ -31,13 +31,17 @@ from .xml_consts import abstracts_path, abstract_path, abstract_paragraph_path
 from .xml_consts import grants_path, grant_path, grant_agency_path
 from .xml_consts import fundtext_path, fundtext_paragraph_path
 
+from .xml_consts import conferences_path, conference_path
+from .xml_consts import conf_location_path, conf_date_path, conf_sponsor_path, conf_title_path, conf_info_path
+from .xml_consts import publishers_path, publisher_path
+from .xml_consts import publisher_name_path, publisher_address_spec_path
+from .xml_consts import publisher_city_path, publisher_full_address_path
+from .xml_consts import role_key
 from datetime import datetime
 from hashlib import sha1
 
 import logging
 from itertools import filterfalse
-
-#TODO add conference fields
 
 
 def kill_trivial_namespace(s):
@@ -285,11 +289,11 @@ def parse_name(branch):
                 logging.error(' parse_name() : address numbers string parsing failure:')
                 logging.error(etree_to_dict(branch))
 
-        if seq_no not in result_dict.keys():
+        if seq_no_key not in result_dict.keys():
             result_dict[add_no_key] = 0
         else:
             try:
-                result_dict[seq_no] = int(result_dict[seq_no])
+                result_dict[seq_no_key] = int(result_dict[seq_no_key])
             except:
                 logging.error(' parse_name() : sequence number could not be extracted :')
                 logging.error(etree_to_dict(branch))
@@ -584,10 +588,84 @@ def parse_fundtext(pub):
         value = ' '.join(paragraphs)
     except:
         logging.info(' parse_fundtext() : fundtext absent '
-                      'in path {0}'.format(pubinfo_path))
+                     'in path {0}'.format(pubinfo_path))
         success = False
         value = etree_to_dict(pub)
     return success, value
+
+
+def parse_publisher(branch):
+    """
+
+    required:
+        pubtype : str
+    optional:
+    """
+    # publisher_address_spec_path = './address_spec'
+    # publisher_full_address_path = 'full_address'
+    # publisher_city_path = 'city'
+    # publisher_name_path = './names/name'
+
+    success = True
+    result_dict = {}
+    addr_dict = {}
+    name_dict = {}
+
+    try:
+        addr_specs = branch.findall(publisher_address_spec_path)
+        names = branch.findall(publisher_name_path)
+
+        for ads in addr_specs:
+            subdict_a = {}
+            if ads.attrib and add_no_key in ads.attrib.keys() \
+                    and is_int(ads.attrib[add_no_key]):
+                add_no = int(ads.attrib[add_no_key])
+            else:
+                add_no = 0
+
+            subdict_a.update({seq_no_key: add_no})
+            full_addr = ads.find(publisher_full_address_path).text
+            subdict_a.update({'address': full_addr})
+            city = ads.find(publisher_city_path).text
+            subdict_a.update({'city': city})
+            addr_dict.update({add_no: add_no})
+
+        for n in names:
+            subdict_n = {}
+            if n.attrib:
+                if add_no_key not in n.attrib.keys():
+                    subdict_n[add_no_key] = [0]
+                else:
+                    try:
+                        add_no_str = ads.attrib[add_no_key].split(' ')
+                        subdict_n[add_no_key] = list(map(lambda x: int(x), add_no_str))
+                    except:
+                        logging.error(' parse_publisher() : address numbers string parsing failure :')
+                        logging.error(etree_to_dict(branch))
+                if seq_no_key not in n.attrib.keys():
+                    subdict_n[add_no_key] = 0
+                else:
+                    try:
+                        subdict_n[seq_no_key] = int(n.attrib[seq_no_key])
+                    except:
+                        logging.error(' parse_publisher() : sequence number could not be extracted :')
+                        logging.error(etree_to_dict(branch))
+
+                if role_key not in n.attrib.keys():
+                    subdict_n[role_key] = None
+                else:
+                    subdict_n[role_key] = n.attrib[role_key]
+
+            # we skip fullname
+            name = n.find(display_name_path)
+            subdict_n[display_name_path] = name.text
+        result_dict['addresses'] = subdict_a
+        result_dict['names'] = subdict_n
+    except:
+        logging.info(' parse_publisher() : ')
+        success = False
+        result_dict = etree_to_dict(branch)
+    return success, result_dict
 
 
 def parse_grant(branch):
@@ -603,7 +681,7 @@ def parse_grant(branch):
         value = branch.find(grant_agency_path).text
     except:
         logging.info(' parse_grant() : No text attr '
-                      'for grant_agency_path field')
+                     'for grant_agency_path field')
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -681,8 +759,8 @@ def parse_title(branch):
         if branch.attrib:
             value.update(branch.attrib)
     except:
-        logging.warn(' parse_title() : No text attr '
-                      'for title field')
+        logging.warning(' parse_title() : No text attr '
+                        'for title field')
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -796,6 +874,9 @@ def parse_record(pub, global_year):
         grant_agencies = prune_branch(pub, grants_path, grant_path,
                                       parse_grant, filter_false=True)
 
+        publishers = prune_branch(pub, publishers_path, publisher_path,
+                                  parse_publisher, filter_false=True)
+
         fund_text = parse_fundtext(pub)
 
         idents_flat = [item for sublist in idents[1] for item in sublist]
@@ -831,6 +912,7 @@ def parse_record(pub, global_year):
             'addresses': addresses[1],
             'authors': authors[1],
             'references': references[1],
+            'publishers': publishers[1],
             'properties': prop_dict,
         }
 
