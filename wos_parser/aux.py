@@ -25,8 +25,8 @@ def main(sourcepath, destpath, global_year, chunksize=100000, maxchunks=None):
 
     only_gz_files = [f for f in listdir(sourcepath) if isfile(join(sourcepath, f)) and f[-3:] == '.gz']
 
-    good_prefix = join(destpath, 'good_{1}_'.format(global_year))
-    bad_prefix = join(destpath, 'bad_{1}_'.format(global_year))
+    good_prefix = join(destpath, 'good_{0}_'.format(global_year))
+    bad_prefix = join(destpath, 'bad_{0}_'.format(global_year))
     good_cf = ChunkFlusher(good_prefix, chunksize, maxchunks)
     bad_cf = ChunkFlusher(bad_prefix, chunksize, maxchunks)
 
