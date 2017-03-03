@@ -144,29 +144,28 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
     return success, jsonic_leaves
 
 
-def add_optional_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=True,
-                       name_suffix=None):
+def add_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=True,
+              name_suffix=None):
     elem = branch.find(entry_path)
     update_dict = {}
 
-    if elem != None:
-        if type:
+    try:
+        value = elem.text
+        if force_type:
             try:
-                value = force_type(elem.text)
+                value = force_type(value)
             except:
-                if relaxed_type:
-                    value = elem.text
-                else:
+                if not relaxed_type:
                     value = None
-        else:
-            value = elem.text
-        if value:
-            if name_suffix:
-                name = entry_path + name_suffix
-            else:
-                name = entry_path
-            update_dict.update({name: value})
-        input_dict.update(update_dict)
+    except:
+        value = None
+    if name_suffix:
+        name = entry_path + name_suffix
+    else:
+        name = entry_path
+
+    update_dict.update({name: value})
+    input_dict.update(update_dict)
 
 
 def parse_address(branch):
@@ -222,12 +221,12 @@ def parse_address(branch):
             result_dict.update({add_no_key: 1})
 
         # entries below are optional
-        add_optional_entry(result_dict, branch, full_address_path)
-        add_optional_entry(result_dict, branch, country_path)
-        add_optional_entry(result_dict, branch, city_path)
-        add_optional_entry(result_dict, branch, state_path)
-        add_optional_entry(result_dict, branch, zipcode_path)
-        add_optional_entry(result_dict, branch, street_path)
+        add_entry(result_dict, branch, full_address_path)
+        add_entry(result_dict, branch, country_path)
+        add_entry(result_dict, branch, city_path)
+        add_entry(result_dict, branch, state_path)
+        add_entry(result_dict, branch, zipcode_path)
+        add_entry(result_dict, branch, street_path)
 
     except:
         success = False
@@ -268,11 +267,11 @@ def parse_name(branch):
             raise
 
         # entries below are optional
-        add_optional_entry(result_dict, branch, wos_standard_path)
-        add_optional_entry(result_dict, branch, name_path)
-        add_optional_entry(result_dict, branch, lastname_path)
-        add_optional_entry(result_dict, branch, firstname_path)
-        add_optional_entry(result_dict, branch, email_path)
+        add_entry(result_dict, branch, wos_standard_path)
+        add_entry(result_dict, branch, name_path)
+        add_entry(result_dict, branch, lastname_path)
+        add_entry(result_dict, branch, firstname_path)
+        add_entry(result_dict, branch, email_path)
 
         result_dict.update((k, v) for k, v in branch.attrib.items())
         if add_no_key not in result_dict.keys():
@@ -319,14 +318,14 @@ def parse_reference(branch):
     success = True
     try:
         result_dict = {}
-        add_optional_entry(result_dict, branch, year_path, int)
-        add_optional_entry(result_dict, branch, year_path, name_suffix='_str')
-        add_optional_entry(result_dict, branch, volume_path, int)
-        add_optional_entry(result_dict, branch, page_path, int)
-        add_optional_entry(result_dict, branch, doi_path)
-        add_optional_entry(result_dict, branch, cited_author_path)
-        add_optional_entry(result_dict, branch, cited_title_path)
-        add_optional_entry(result_dict, branch, cited_work_path)
+        add_entry(result_dict, branch, year_path, int)
+        add_entry(result_dict, branch, year_path, name_suffix='_str')
+        add_entry(result_dict, branch, volume_path, int)
+        add_entry(result_dict, branch, page_path, int)
+        add_entry(result_dict, branch, doi_path)
+        add_entry(result_dict, branch, cited_author_path)
+        add_entry(result_dict, branch, cited_title_path)
+        add_entry(result_dict, branch, cited_work_path)
 
         try:
             uid = branch.find(uid_path)
