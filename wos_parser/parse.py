@@ -338,7 +338,7 @@ def parse_reference(branch):
                 uid_value = result_dict[doi_path]
             elif cited_title_path in result_dict.keys():
                 value = sha1(result_dict[cited_title_path].encode('utf-8')).hexdigest()
-                uid_value = 'ROG:' + value
+                uid_value = 'ROG:{0]'.format(value)
             elif cited_author_path in result_dict.keys() \
                     and year_path+'+str' in result_dict.keys() \
                     and cited_work_path in result_dict.keys():
