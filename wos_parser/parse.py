@@ -32,7 +32,11 @@ from .xml_consts import grants_path, grant_path, grant_agency_path
 from .xml_consts import fundtext_path, fundtext_paragraph_path
 
 from .xml_consts import conferences_path, conference_path
-from .xml_consts import conf_location_path, conf_date_path, conf_sponsor_path, conf_title_path, conf_info_path
+from .xml_consts import conf_location_path, conf_date_path
+from .xml_consts import conf_sponsor_path, conf_title_path, conf_info_path
+from .xml_consts import conf_city, conf_state, conf_host
+
+from .xml_consts import conf_id_key
 from .xml_consts import publishers_path, publisher_path
 from .xml_consts import publisher_name_path, publisher_address_spec_path
 from .xml_consts import publisher_city_path, publisher_full_address_path
@@ -601,20 +605,13 @@ def parse_publisher(branch):
         pubtype : str
     optional:
     """
-    # publisher_address_spec_path = './address_spec'
-    # publisher_full_address_path = 'full_address'
-    # publisher_city_path = 'city'
-    # publisher_name_path = './names/name'
 
     success = True
     result_dict = {}
-    addr_dict = {}
-    name_dict = {}
 
     try:
         addr_specs = branch.findall(publisher_address_spec_path)
-        names = branch.findall(publisher_name_path)
-
+        acc_a = []
         for ads in addr_specs:
             subdict_a = {}
             if ads.attrib and add_no_key in ads.attrib.keys() \
@@ -623,13 +620,14 @@ def parse_publisher(branch):
             else:
                 add_no = 0
 
-            subdict_a.update({seq_no_key: add_no})
             full_addr = ads.find(publisher_full_address_path).text
-            subdict_a.update({'address': full_addr})
             city = ads.find(publisher_city_path).text
-            subdict_a.update({'city': city})
-            addr_dict.update({add_no: add_no})
+            subdict_a.update({add_no_key: add_no})
+            subdict_a.update({'city': city, 'address': full_addr})
+            acc_a.append(subdict_a)
 
+        names = branch.findall(publisher_name_path)
+        acc_n = []
         for n in names:
             subdict_n = {}
             if n.attrib:
@@ -655,14 +653,83 @@ def parse_publisher(branch):
                     subdict_n[role_key] = None
                 else:
                     subdict_n[role_key] = n.attrib[role_key]
+                acc_n.append(subdict_n)
 
             # we skip fullname
             name = n.find(display_name_path)
             subdict_n[display_name_path] = name.text
-        result_dict['addresses'] = subdict_a
-        result_dict['names'] = subdict_n
+        result_dict['addresses'] = acc_a
+        result_dict['names'] = acc_n
     except:
         logging.info(' parse_publisher() : ')
+        success = False
+        result_dict = etree_to_dict(branch)
+    return success, result_dict
+
+
+def parse_conference(branch):
+    """
+
+    required:
+        pubtype : str
+    optional:
+    """
+
+    success = True
+    result_dict = {}
+
+    try:
+        if conf_id_key in branch.attrib.keys():
+            if is_int(branch.attrib[conf_id_key]):
+                result_dict.update({conf_id_key: int(branch.attrib[conf_id_key])})
+            else:
+                result_dict.update({conf_id_key: None})
+
+            result_dict.update({'{0}_str'.format(conf_id_key): branch.attrib[conf_id_key]})
+
+        dates = branch.findall(conf_date_path)
+        acc_dates = []
+
+        for d in dates:
+            dates_dict = {'dates_str': d.text}
+            # 'conf_start' 'conf_end' keys
+            dates_dict.update(d.attrib)
+            acc_dates.append(dates_dict)
+        result_dict['dates'] = acc_dates
+
+        locations = branch.findall(conf_location_path)
+        acc_locations = []
+        for l in locations:
+            city = l.find(conf_city)
+            state = l.find(conf_state)
+            host = l.find(conf_host)
+            dd = {'conf_city': None if city is None else city.text,
+                  'conf_state': None if state is None else state.text,
+                  'conf_host': None if host is None else host.text}
+            acc_locations.append(dd)
+        result_dict['locations'] = acc_locations
+
+        titles = branch.findall(conf_title_path)
+        acc_titles = []
+        for t in titles:
+            acc_titles.append(t.text)
+        result_dict['titles'] = acc_titles
+
+        sponsors = branch.findall(conf_sponsor_path)
+        acc_sponsors = []
+        logging.error('{0} sponsors len'.format(len(sponsors)))
+        for s in sponsors:
+            acc_sponsors.append(s.text)
+        result_dict['sponsors'] = acc_sponsors
+
+        infos = branch.findall(conf_info_path)
+        acc_infos = []
+        for i in infos:
+            acc_infos.append(i.text)
+
+        result_dict['infos'] = acc_infos
+    except:
+        logging.error(' parse_conference() : fail')
         success = False
         result_dict = etree_to_dict(branch)
     return success, result_dict
@@ -877,6 +944,9 @@ def parse_record(pub, global_year):
         publishers = prune_branch(pub, publishers_path, publisher_path,
                                   parse_publisher, filter_false=True)
 
+        conferences = prune_branch(pub, conferences_path, conference_path,
+                                   parse_conference, filter_false=True)
+
         fund_text = parse_fundtext(pub)
 
         idents_flat = [item for sublist in idents[1] for item in sublist]
@@ -905,6 +975,8 @@ def parse_record(pub, global_year):
             prop_dict.update({'grant_agencies': grant_agencies[1]})
         if fund_text[0]:
             prop_dict.update({'fund_text': fund_text[1]})
+        if conferences[0]:
+            prop_dict.update({'conferences': conferences[1]})
 
         record_dict = {
             'id': wosid[1],

@@ -13,6 +13,7 @@ org_path = './organizations/organization'
 add_no_key = 'addr_no'
 seq_no_key = 'seq_no'
 role_key = 'role'
+conf_id_key = 'conf_id'
 
 # parse_name()
 names_path = './static_data/summary/names'
@@ -88,13 +89,16 @@ fundtext_path = './static_data/fullrecord_metadata/fund_ack/fund_text'
 fundtext_paragraph_path = 'p'
 
 # conferences
-conferences_path = './static_data/conferences'
-conference_path = './conference'
+conferences_path = './static_data/summary/conferences'
+conference_path = 'conference'
 conf_info_path = './conf_infos/conf_info'
-conf_title_path = './conf_titles/conf_title'
 conf_date_path = './conf_dates/conf_date'
 conf_location_path = './conf_locations/conf_location'
+conf_title_path = './conf_titles/conf_title'
 conf_sponsor_path = './sponsors/sponsor'
+conf_city = 'conf_city'
+conf_state = 'conf_state'
+conf_host = 'conf_host'
 
 publishers_path = './static_data/summary/publishers'
 publisher_path = './publisher'
