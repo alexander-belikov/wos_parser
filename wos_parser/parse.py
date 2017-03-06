@@ -6,6 +6,8 @@ from .xml_consts import add_spec_path, \
     state_path, zipcode_path, street_path, org_path, \
     add_no_key
 
+from .xml_consts import suborg_path
+
 from .xml_consts import pubinfo_path
 from .xml_consts import add_path
 
@@ -202,22 +204,17 @@ def parse_address(branch):
             return x.attrib and 'pref' in x.attrib and x.attrib['pref'] == 'Y'
 
         # find first org with pref='Y'
-        org_pref = list(filter(condition, org_names))
-        org_rest = list(filterfalse(condition, org_names))
+        orgs_pref = list(filter(condition, org_names))
+        orgs_pref = list(map(lambda x: x.text, filterfalse(lambda x: x is None, orgs_pref)))
+        result_dict = {'organizations_pref': orgs_pref}
 
-        # TODO add try-catch-raise with logging
-        # if both lists are empty : exception triggered
-        if len(org_pref) > 0:
-            org_main = org_pref[0]
-        else:
-            org_main = org_rest[0]
+        orgs_rest = list(filterfalse(condition, org_names))
+        orgs_rest = list(map(lambda x: x.text, filterfalse(lambda x: x is None, orgs_rest)))
+        result_dict.update({'organizations': orgs_rest})
 
-        result_dict = {'organization': org_main.text}
-        org_rest.extend(org_rest[1:])
-
-        org_synonyms = list(map(lambda x: x.text, filter(lambda x: x.text, org_rest)))
-
-        result_dict.update({'organization_synonyms': org_synonyms})
+        suborg_names = branch.findall(suborg_path)
+        suborgs = list(map(lambda x: x.text, filterfalse(lambda y: y is None, suborg_names)))
+        result_dict.update({'suborganizations': suborgs})
 
         if branch.attrib:
             if add_no_key in branch.attrib:
@@ -341,18 +338,19 @@ def parse_reference(branch):
         except:
             logging.error(' parse_reference() : uid field absent:')
             logging.error(' parse_reference() : adding ROG id')
-            if doi_path in result_dict.keys():
-                uid_value = result_dict[doi_path]
-            elif cited_title_path in result_dict.keys():
+            if result_dict[doi_path]:
+                value = result_dict[doi_path]
+                uid_value = 'DOI:{0}'.format(value)
+            elif result_dict[cited_title_path]:
                 value = sha1(result_dict[cited_title_path].encode('utf-8')).hexdigest()
-                uid_value = 'ROG:{0]'.format(value)
-            elif cited_author_path in result_dict.keys() \
-                    and year_path+'+str' in result_dict.keys() \
-                    and cited_work_path in result_dict.keys():
+                uid_value = 'ROG:{0}'.format(value)
+            elif result_dict[cited_author_path] \
+                    and result_dict[year_path+'+str'] \
+                    and result_dict[cited_work_path]:
                 str_combo = ' '.join([result_dict[cited_author_path],
                                       result_dict[year_path+'str'], result_dict[cited_work_path]])
                 value = sha1(str_combo.encode('utf-8')).hexdigest()
-                uid_value = 'ROG:' + value
+                uid_value = 'ROG:{0}'.format(value)
             else:
                 logging.error(' parse_reference() : uid assignment failed')
                 raise
@@ -717,7 +715,7 @@ def parse_conference(branch):
 
         sponsors = branch.findall(conf_sponsor_path)
         acc_sponsors = []
-        logging.error('{0} sponsors len'.format(len(sponsors)))
+
         for s in sponsors:
             acc_sponsors.append(s.text)
         result_dict['sponsors'] = acc_sponsors
