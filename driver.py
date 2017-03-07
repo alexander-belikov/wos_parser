@@ -39,8 +39,13 @@ if __name__ == "__main__":
     else:
         maxchunks = None
 
+    if is_int(args.year):
+        year = int(args.year)
+    else:
+        raise ValueError('year argument not an integer')
+
     logging.basicConfig(filename=args.logfile, level=log_levels[args.verbosity],
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M')
 
-    main(args.sourcepath, args.destpath, args.year, args.chunksize, maxchunks)
+    main(args.sourcepath, args.destpath, year, args.chunksize, maxchunks)
