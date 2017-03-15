@@ -424,7 +424,6 @@ def parse_reference(branch):
 
 
 def parse_date(branch, global_year, path=pubinfo_path):
-    # TODO include etree_to_dict dump in parse_date
     """
     expected reference structure:
 
@@ -688,7 +687,7 @@ def parse_publisher(branch):
                     subdict_n[add_no_key] = [0]
                 else:
                     try:
-                        add_no_str = ads.attrib[add_no_key].split(' ')
+                        add_no_str = n.attrib[add_no_key].split(' ')
                         subdict_n[add_no_key] = list(map(lambda x: int(x), add_no_str))
                     except:
                         logging.error(' parse_publisher() : address numbers string parsing failure :')
