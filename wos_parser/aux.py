@@ -43,5 +43,5 @@ def main(sourcepath, destpath, global_year, chunksize=100000, maxchunks=None):
     good_cf.flush_chunk()
     bad_cf.flush_chunk()
     logging.error('not an error : {0} good records, '
-                 '{1} bad records'.format(good_cf.items_processed(),
-                                          bad_cf.items_processed()))
+                  '{1} bad records'.format(good_cf.items_processed(),
+                                           bad_cf.items_processed()))

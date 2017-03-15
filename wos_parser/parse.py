@@ -1,4 +1,4 @@
-from re import compile
+from re import compile, sub
 import xml.etree.cElementTree as cET
 from .xml_consts import id_path
 from .xml_consts import add_spec_path, \
@@ -17,7 +17,7 @@ from .xml_consts import names_path, name_path, display_name_path, \
 from .xml_consts import seq_no_key
 
 from .xml_consts import references_path, reference_path, \
-    uid_path, year_path, page_path, cited_author_path, cited_work_path, \
+    uid_path, year_path, ref_page_path, cited_author_path, cited_work_path, \
     cited_title_path, volume_path, doi_path
 
 from .xml_consts import keywords_path, keyword_path
@@ -43,6 +43,8 @@ from .xml_consts import publishers_path, publisher_path
 from .xml_consts import publisher_name_path, publisher_address_spec_path
 from .xml_consts import publisher_city_path, publisher_full_address_path
 from .xml_consts import role_key
+from .xml_consts import page_path, begin_key, end_key, pagecount_key
+
 from datetime import datetime
 from hashlib import sha1
 
@@ -304,6 +306,59 @@ def parse_name(branch):
     return success, result_dict
 
 
+def parse_page(branch, path):
+    """
+
+    :param branch:
+    :param path:
+    :return: dict with keys
+        required:
+            page_count : int
+
+        optional:
+            end: str
+            begin: str
+            range: str
+                NB range can be X123-X125, or 123A-125A
+                so it might be used when
+                page_count can not be cast to float
+    """
+
+    success = True
+    result_dict = {k: None for k in [pagecount_key, begin_key, end_key, 'range']}
+    try:
+        entry = branch.find(path)
+        pp = entry.text
+        attrib_dict = entry.attrib
+        result_dict.update(attrib_dict)
+        result_dict['range'] = pp
+        try:
+            result_dict[pagecount_key] = int(result_dict[pagecount_key])
+        except:
+            try:
+                delta = int(result_dict[end_key]) - int(result_dict[begin_key]) + 1
+                if delta < 1:
+                    logging.error(' parse_page() : page_count value below 1')
+                    raise ValueError('failed to cast to int parsed page_count')
+                result_dict[pagecount_key] = delta
+            except:
+                try:
+                    pps = pp.split('-')
+                    ipps = list(map(int, map(lambda x: sub(r'\D', '', x), pps)))
+                    delta = (ipps[1] - ipps[0]) + 1
+                    if delta < 1:
+                        logging.error(' parse_page() : page_count value below 1')
+                        raise ValueError('failed to cast to int parsed page_count')
+                    result_dict[pagecount_key] = delta
+                except:
+                    logging.error(' parse_page() : failed to integerize page count field')
+                    raise TypeError('failed to cast to int parsed page_count')
+    except:
+        success = False
+        logging.error(' parse_page() : could not capture page')
+    return success, result_dict
+
+
 def parse_reference(branch):
     """
     expected reference structure:
@@ -326,7 +381,7 @@ def parse_reference(branch):
         add_entry(result_dict, branch, year_path, int)
         add_entry(result_dict, branch, year_path, name_suffix='_str')
         add_entry(result_dict, branch, volume_path, int)
-        add_entry(result_dict, branch, page_path, int)
+        add_entry(result_dict, branch, ref_page_path, int)
         add_entry(result_dict, branch, doi_path)
         add_entry(result_dict, branch, cited_author_path)
         add_entry(result_dict, branch, cited_title_path)
@@ -557,7 +612,7 @@ def parse_pubtype(branch):
             raise
     except:
         success = False
-        result_dict = etree_to_dict(branch)
+        result_dict = {'pubtype': None}
     return success, result_dict
 
 
@@ -592,7 +647,7 @@ def parse_fundtext(pub):
         logging.info(' parse_fundtext() : fundtext absent '
                      'in path {0}'.format(pubinfo_path))
         success = False
-        value = etree_to_dict(pub)
+        value = None
     return success, value
 
 
@@ -858,19 +913,19 @@ def parse_identifier(branch):
 def process_languages(languages):
     result_dict = {}
 
-    langueges_list = list(map(lambda x: x['value'], languages[1]))
+    languages_list = list(map(lambda x: x['value'], languages[1]))
     primary_language = list(map(lambda y: y['value'],
                                 filter(lambda x: 'type' in x.keys() and
                                                  x['type'] == 'primary', languages[1])))
     # populate languages with a list
-    result_dict['languages'] = langueges_list
+    result_dict['languages'] = languages_list
 
     # populate primary_language with a primary language
     # if not available, the first available
     if primary_language:
         result_dict['primary_language'] = primary_language[0]
-    elif langueges_list:
-        result_dict['primary_language'] = langueges_list[0]
+    elif languages_list:
+        result_dict['primary_language'] = languages_list[0]
 
     return result_dict
 
@@ -887,9 +942,12 @@ def process_titles(titles):
                                              x['type'] == 'source', titles[1])))
     if item_title:
         result_dict['item_title'] = item_title[0]
-
+    else:
+        result_dict['item_title'] = None
     if source_title:
         result_dict['source_title'] = source_title[0]
+    else:
+        result_dict['source_title'] = None
 
     return result_dict
 
@@ -921,6 +979,7 @@ def parse_record(pub, global_year):
         titles = prune_branch(pub, titles_path, title_path,
                               parse_title, filter_false=True)
         titles_dict = process_titles(titles)
+
         keywords = prune_branch(pub, keywords_path, keyword_path,
                                 parse_generic, filter_false=True)
 
@@ -947,34 +1006,25 @@ def parse_record(pub, global_year):
 
         fund_text = parse_fundtext(pub)
 
+        page_dict = parse_page(pub, page_path)
+
         idents_flat = [item for sublist in idents[1] for item in sublist]
 
         prop_dict = {x: y for x, y in idents_flat}
 
-        if pubtype[0]:
-            prop_dict.update(pubtype[1])
-        if languages[0]:
-            prop_dict.update(language_dict)
-        if titles[0]:
-            prop_dict.update(titles_dict)
-        if doctypes[0]:
-            prop_dict.update({'doctype': doctypes[1]})
-        if keywords[0]:
-            prop_dict.update({'keywords': keywords[1]})
-        if headings[0]:
-            prop_dict.update({'headings': headings[1]})
-        if subheadings[0]:
-            prop_dict.update({'subheadings': subheadings[1]})
-        if subjects[0]:
-            prop_dict.update({'subjects': list(set(subjects[1]))})
-        if abstracts[0]:
-            prop_dict.update({'abstracts': abstracts[1]})
-        if grant_agencies[0]:
-            prop_dict.update({'grant_agencies': grant_agencies[1]})
-        if fund_text[0]:
-            prop_dict.update({'fund_text': fund_text[1]})
-        if conferences[0]:
-            prop_dict.update({'conferences': conferences[1]})
+        prop_dict.update(pubtype[1])
+        prop_dict.update(language_dict)
+        prop_dict.update(titles_dict)
+        prop_dict.update({'doctype': doctypes[1]})
+        prop_dict.update({'keywords': keywords[1]})
+        prop_dict.update({'headings': headings[1]})
+        prop_dict.update({'subheadings': subheadings[1]})
+        prop_dict.update({'subjects': list(set(subjects[1]))})
+        prop_dict.update({'abstracts': abstracts[1]})
+        prop_dict.update({'grant_agencies': grant_agencies[1]})
+        prop_dict.update({'fund_text': fund_text[1]})
+        prop_dict.update({'conferences': conferences[1]})
+        prop_dict.update({'page_info': page_dict[1]})
 
         record_dict = {
             'id': wosid[1],
@@ -1040,6 +1090,21 @@ def issn2int(issn_str):
                       'the pattern {1}'.format(issn_str, pat))
 
         raise ValueError(' issn2int(): invalid issn string')
+
+
+def issnint2str(issn_int):
+    if type(issn_int) is not int:
+        raise TypeError('issn_int is not int')
+    issn_ = '{num:07d}'.format(num=issn_int)
+    check = map(lambda x: int(x), issn_)
+    res = 0
+    for pp in zip(check, range(8, 1, -1)):
+        res += pp[0] * pp[1]
+
+    rem = (11 - res) % 11
+    rem = 'X' if rem == 10 else rem
+    issn_str = '{0}-{1}{2}'.format(issn_[:4], issn_[4:], rem)
+    return issn_str
 
 
 def is_int(x):

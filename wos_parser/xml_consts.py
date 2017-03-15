@@ -30,15 +30,22 @@ references_path = './static_data/fullrecord_metadata/references'
 reference_path = 'reference'
 uid_path = 'uid'
 year_path = 'year'
-page_path = 'page'
+ref_page_path = 'page'
+
 cited_author_path = 'citedAuthor'
 cited_title_path = 'citedTitle'
 cited_work_path = 'citedWork'
 volume_path = 'volume'
 doi_path = 'doi'
 
-# parse_date()
+# generic
 pubinfo_path = './static_data/summary/pub_info'
+
+# parse_page attribs
+page_path = './static_data/summary/pub_info/page'
+begin_key = 'begin'
+end_key = 'end'
+pagecount_key = 'page_count'
 
 # parse_record()
 add_path = './static_data/fullrecord_metadata/addresses'
