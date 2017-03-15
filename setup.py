@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="wos_parser",
-    version="0.1",
+    version="1.0",
     author="Alexander Belikov",
     author_email="abelikov@gmail.com",
     description="tools for parsing xmls of web of science data",
