@@ -1,21 +1,7 @@
-.. image:: https://github.com/alexander-belikov/wos_parser/extras/wos_parser_logo.jpg?raw=true
+.. image:: https://github.com/alexander-belikov/wos_parser/raw/master/extras/wos_parser.jpg?raw=true
     :alt: WoS parser logo
     :align: center
-
 WoS parser is a Python package for parsing the Web of Science XML data
-
-Features
---------
-
--  Intuitive model specification syntax, for example, ``x ~ N(0,1)``
--  **Variational inference**: `ADVI <http://arxiv.org/abs/1506.03431>`__
-   for fast approximate posterior estimation as well as mini-batch ADVI
-   for large data sets.
--  Relies on `Theano <http://deeplearning.net/software/theano/>`__ which provides:
-    *  Computation optimization and dynamic C compilation
-    *  Numpy broadcasting and advanced indexing
-    *  Linear algebra operators
-    *  Simple extensibility
 
 NB
 ---------------
