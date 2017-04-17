@@ -1,11 +1,18 @@
 from kotta import Kotta, KottaJob
 from kotta.kotta_functions import *
 from pprint import pprint
-import pandas as pd
+from os.path import expanduser
+
+"""
+This sketch of a script is intended
+to initiate AWS // Cloud Kotta jobs
+that parse web of science.
+Filepaths have to edited to match the intended
+filepaths on the local system.
+"""
 
 # Create a Kotta Connection using Login with Amazon credentials
 # The token from Kotta is stored in the auth.file
-from os.path import expanduser
 konn = Kotta(open(expanduser('~/aauth/am.cert')).read())
 
 
@@ -13,7 +20,9 @@ str_script = str()
 with open('./runner.sh') as f:
     str_script += f.read()
 
+
 pprint(str_script)
+
 
 def job_generate(year):
     str_year = str(year)
@@ -36,20 +45,32 @@ def job_generate(year):
                     walltime='300',
                     script=str_script)
 
-jobs = [(year, job_generate(year)) for year in range(1985, 1991, 1)]
+jobs = [(year, job_generate(year)) for year in range(1985, 2016, 1)]
+print(len(jobs))
 
 year_id_list = []
 for job in jobs:
     job[1].submit(konn)
     year_id_list.append((job[0], job[1].job_id))
+print(year_id_list)
+
 
 for job in jobs:
     print('{0} {1}'.format(job[1].job_id, job[1].status(konn)))
 
-# delay until jobs get completed
 dump = []
 for job in jobs:
-    dump.append((job[0], job[1].job_id, job[1].outputs[0].s3_url))
-pd.DataFrame(dump, columns=['year', 'job_id', 'good_file_url']).to_csv('../../data/wos/wosp_run_1985.csv')
+    if job[1].status(konn) == 'completed':
+        for outs in job[1].outputs:
+            dump.append((job[0], job[1].job_id, outs.s3_url))
+import pandas as pd
+pd.DataFrame(dump, columns=['year', 'job_id', 'good_file_url']).to_csv('../../data/wos/golden/wosp_run.csv')
 
 
+for job in jobs:
+    if job[1].status(konn) == 'completed':
+        for outs in job[1].outputs:
+            if '.log' in outs.s3_url:
+                with open('../../data/wos/logs/{0}'.format(outs.file), 'w') as f:
+                    content = outs.read()
+                    f.write(content)

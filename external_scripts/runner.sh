@@ -1,10 +1,10 @@
 #!/bin/bash
 
 installs() {
-    apt-get update
-    apt-get -y install unzip zip gzip coreutils git python-lxml
-    apt-get -y install python-pip python3-dev libxml2-dev libxslt1-dev zlib1g-dev
-    pip install Cython
+    if [[ "$unamestr" == 'Linux' ]]; then
+        lsb_release -a
+        apt-get update
+    fi
 }
 
 get_year() {
