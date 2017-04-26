@@ -32,6 +32,7 @@ from .xml_consts import languages_path, language_path
 from .xml_consts import abstracts_path, abstract_path, abstract_paragraph_path
 from .xml_consts import grants_path, grant_path, grant_agency_path
 from .xml_consts import grant_ids_path, grant_id_path
+from .xml_consts import ewuid_path, edition_path
 
 from .xml_consts import fundtext_path, fundtext_paragraph_path
 
@@ -158,7 +159,7 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
     return success, jsonic_leaves
 
 
-def add_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=True,
+def add_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=False,
               name_suffix=None):
     elem = branch.find(entry_path)
     update_dict = {}
@@ -383,7 +384,9 @@ def parse_reference(branch):
         add_entry(result_dict, branch, year_path, int)
         add_entry(result_dict, branch, year_path, name_suffix='_str')
         add_entry(result_dict, branch, volume_path, int)
+        add_entry(result_dict, branch, volume_path, name_suffix='_str')
         add_entry(result_dict, branch, ref_page_path, int)
+        add_entry(result_dict, branch, ref_page_path, name_suffix='_str')
         add_entry(result_dict, branch, doi_path)
         add_entry(result_dict, branch, cited_author_path)
         add_entry(result_dict, branch, cited_title_path)
@@ -870,6 +873,26 @@ def parse_generic(branch):
     return success, value
 
 
+def parse_edition(branch):
+    """
+
+    required:
+        pub_edition : str
+    optional:
+    """
+
+    success = True
+    value = None
+    try:
+        value = branch.attrib['value']
+    except:
+        logging.info(' parse_edition() : No value in attrib dict '
+                     'for grant_agency_path field')
+        success = False
+        value = etree_to_dict(branch)
+    return success, value
+
+
 def parse_title(branch):
     """
 
@@ -1012,6 +1035,8 @@ def parse_record(pub, global_year):
         conferences = prune_branch(pub, conferences_path, conference_path,
                                    parse_conference, filter_false=True)
 
+        editions = prune_branch(pub, ewuid_path, edition_path, parse_edition)
+
         fund_text = parse_fundtext(pub)
 
         page_dict = parse_page(pub, page_path)
@@ -1034,6 +1059,7 @@ def parse_record(pub, global_year):
         prop_dict.update({'fund_text': fund_text[1]})
         prop_dict.update({'conferences': conferences[1]})
         prop_dict.update({'page_info': page_dict[1]})
+        prop_dict.update({'editions': editions[1]})
 
         record_dict = {
             'id': wosid[1],
