@@ -113,6 +113,10 @@ conf_city = 'conf_city'
 conf_state = 'conf_state'
 conf_host = 'conf_host'
 
+# editions
+ewuid_path = './static_data/summary/EWUID'
+edition_path = 'edition'
+
 publishers_path = './static_data/summary/publishers'
 publisher_path = './publisher'
 publisher_address_spec_path = './address_spec'

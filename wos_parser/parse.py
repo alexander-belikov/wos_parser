@@ -31,6 +31,8 @@ from .xml_consts import titles_path, title_path
 from .xml_consts import languages_path, language_path
 from .xml_consts import abstracts_path, abstract_path, abstract_paragraph_path
 from .xml_consts import grants_path, grant_path, grant_agency_path
+from .xml_consts import grant_ids_path, grant_id_path
+
 from .xml_consts import fundtext_path, fundtext_paragraph_path
 
 from .xml_consts import conferences_path, conference_path
@@ -796,15 +798,18 @@ def parse_grant(branch):
     """
 
     success = True
+    result_dict = {}
     try:
-        value_agency = branch.find(grant_agency_path).text
-        grant_ids = prune_branch()
+        agency = branch.find(grant_agency_path).text
+        grant_ids = prune_branch(branch, grant_ids_path,
+                                 grant_id_path, parse_generic, filter_false=True)
+        result_dict.update({agency: grant_ids})
     except:
         logging.info(' parse_grant() : No text attr '
                      'for grant_agency_path field')
         success = False
-        value = etree_to_dict(branch)
-    return success, value
+        result_dict = etree_to_dict(branch)
+    return success, result_dict
 
 
 def parse_doctype(branch):
