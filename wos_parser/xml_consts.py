@@ -70,6 +70,9 @@ title_path = 'title'
 keywords_path = './static_data/fullrecord_metadata/keywords'
 keyword_path = 'keyword'
 
+# keywords_plus
+keywordsplus_path = './static_data/item/keywords_plus'
+
 # headings
 headings_path = './static_data/fullrecord_metadata/category_info/headings'
 heading_path = 'heading'

@@ -20,7 +20,7 @@ from .xml_consts import references_path, reference_path, \
     uid_path, year_path, ref_page_path, cited_author_path, cited_work_path, \
     cited_title_path, volume_path, doi_path
 
-from .xml_consts import keywords_path, keyword_path
+from .xml_consts import keywords_path, keyword_path, keywordsplus_path
 from .xml_consts import headings_path, heading_path
 from .xml_consts import subheadings_path, subheading_path
 from .xml_consts import subjects_path, subject_path
@@ -982,6 +982,9 @@ def parse_record(pub, global_year):
         keywords = prune_branch(pub, keywords_path, keyword_path,
                                 parse_generic, filter_false=True)
 
+        kws_plus = prune_branch(pub, keywordsplus_path, keyword_path,
+                                parse_generic, filter_false=True)
+
         headings = prune_branch(pub, headings_path, heading_path,
                                 parse_generic, filter_false=True)
 
@@ -1016,6 +1019,7 @@ def parse_record(pub, global_year):
         prop_dict.update(titles_dict)
         prop_dict.update({'doctype': doctypes[1]})
         prop_dict.update({'keywords': keywords[1]})
+        prop_dict.update({'keywords_plus': kws_plus[1]})
         prop_dict.update({'headings': headings[1]})
         prop_dict.update({'subheadings': subheadings[1]})
         prop_dict.update({'subjects': list(set(subjects[1]))})
