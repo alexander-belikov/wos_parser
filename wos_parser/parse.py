@@ -797,7 +797,8 @@ def parse_grant(branch):
 
     success = True
     try:
-        value = branch.find(grant_agency_path).text
+        value_agency = branch.find(grant_agency_path).text
+        grant_ids = prune_branch()
     except:
         logging.info(' parse_grant() : No text attr '
                      'for grant_agency_path field')

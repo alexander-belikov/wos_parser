@@ -94,6 +94,8 @@ abstract_paragraph_path = './abstract_text/p'
 grants_path = './static_data/fullrecord_metadata/fund_ack/grants'
 grant_path = 'grant'
 grant_agency_path = 'grant_agency'
+grant_ids_path = 'grant_ids'
+grant_id_path = 'grant_id'
 
 # func text
 fundtext_path = './static_data/fullrecord_metadata/fund_ack/fund_text'
