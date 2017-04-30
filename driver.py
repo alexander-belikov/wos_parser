@@ -32,6 +32,10 @@ if __name__ == "__main__":
                         default='None',
                         help='Maximum number of chunks. Defaults to None')
 
+    parser.add_argument('-t', '--test',
+                        default='-1', type=int,
+                        help='test mode: number of records to parse')
+
     args = parser.parse_args()
 
     if is_int(args.maxchunks):
@@ -47,5 +51,5 @@ if __name__ == "__main__":
     logging.basicConfig(filename=args.logfile, level=log_levels[args.verbosity],
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M')
-
-    main(args.sourcepath, args.destpath, year, args.chunksize, maxchunks)
+    ntest = None if args.test < 0 else args.test
+    main(args.sourcepath, args.destpath, year, args.chunksize, maxchunks, ntest=ntest)

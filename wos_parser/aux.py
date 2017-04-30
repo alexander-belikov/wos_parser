@@ -21,7 +21,7 @@ def gunzip_file(fname_in, fname_out):
             copyfileobj(f_in, f_out)
 
 
-def main(sourcepath, destpath, global_year, chunksize=100000, maxchunks=None):
+def main(sourcepath, destpath, global_year, chunksize=100000, maxchunks=None, ntest=None):
 
     only_gz_files = [f for f in listdir(sourcepath) if isfile(join(sourcepath, f)) and f[-3:] == '.gz']
 
@@ -37,7 +37,7 @@ def main(sourcepath, destpath, global_year, chunksize=100000, maxchunks=None):
             gunzip_file(full_f, f_degz)
             xml_remove_trivial_namespace(f_degz)
             with open(f_degz, 'rb') as fp:
-                parse_wos_xml(fp, global_year, good_cf, bad_cf)
+                parse_wos_xml(fp, global_year, good_cf, bad_cf, ntest)
 
     # terminal flush
     good_cf.flush_chunk()

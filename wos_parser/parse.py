@@ -1078,7 +1078,7 @@ def parse_record(pub, global_year):
     return success, record_dict
 
 
-def parse_wos_xml(fp, global_year, good_cf, bad_cf):
+def parse_wos_xml(fp, global_year, good_cf, bad_cf, ntest=None):
     """
     driver func, parse file fp, push good and bad records
     accordingly to good_cf and bad_cf
@@ -1087,6 +1087,7 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf):
     :param global_year: apriori known year
     :param good_cf: chunk flusher of good records
     :param bad_cf: chunk flusher of bad records
+    :param ntest: number of records for test mode
     :return:
     """
     events = ('start', 'end')
@@ -1094,6 +1095,7 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf):
     context = iter(tree)
     event, root = next(context)
     rec_ = 'REC'
+    it = 0
 
     for event, pub in context:
         if event == "end" and pub.tag == rec_:
@@ -1108,6 +1110,9 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf):
             if not good_cf.ready() or not bad_cf.ready():
                 break
             root.clear()
+            it += 1
+            if ntest and it >= ntest:
+                break
 
 
 def issn2int(issn_str):
