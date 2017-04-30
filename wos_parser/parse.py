@@ -403,23 +403,22 @@ def parse_reference(branch):
                 value = result_dict[doi_path]
                 value = sha1(value.encode('utf-8')).hexdigest()
                 uid_value = 'DOI:{0}'.format(value)[:len_wosid]
-                # uid_value = sha1(value.encode('utf-8')).hexdigest()[:len_wosid]
                 logging.error(' parse_reference() : adding DOI id : {0}'.format(uid_value))
-                logging.error(' parse_reference() : ROG id ref {0}'.format(result_dict))
+                logging.error(' parse_reference() : ref content {0}'.format(result_dict))
             elif result_dict[cited_title_path]:
                 value = sha1(result_dict[cited_title_path].encode('utf-8')).hexdigest()
                 uid_value = 'ROG:{0}'.format(value)[:len_wosid]
                 logging.error(' parse_reference() : adding ROG id title : {0}'.format(uid_value))
-                logging.error(' parse_reference() : ROG id ref {0}'.format(result_dict))
+                logging.error(' parse_reference() : ref content {0}'.format(result_dict))
             elif result_dict[cited_author_path] \
-                    and result_dict[year_path+'str'] \
+                    and result_dict[year_path + '_str'] \
                     and result_dict[cited_work_path]:
                 str_combo = ' '.join([result_dict[cited_author_path],
                                       result_dict[year_path + '_str'], result_dict[cited_work_path]])
                 value = sha1(str_combo.encode('utf-8')).hexdigest()
                 uid_value = 'ROG:{0}'.format(value)[:len_wosid]
                 logging.error(' parse_reference() : adding ROG id author year cited: {0}'.format(uid_value))
-                logging.error(' parse_reference() : ROG id ref {0}'.format(result_dict))
+                logging.error(' parse_reference() : ref content {0}'.format(result_dict))
             else:
                 logging.error(' parse_reference() : uid assignment failed')
                 raise
@@ -567,21 +566,15 @@ def extract_day(info_dict):
         except:
             logging.error(' extract_day() : sortdate format '
                           'corrupt: {0}'.format(sortdate))
-    if pm in info_dict.keys():
+    elif pm in info_dict.keys():
         month_letter = info_dict[pm]
         try:
             if ' ' in month_letter:
                 date = datetime.strptime(month_letter, '%b %d')
                 days['pubmonth'] = date.day
         except:
-            logging.error(' extract_day() : pubmonth format '
-                          'corrupt: {0}'.format(month_letter))
-
-    # give priority to sortdate month, report possible discrepancy
-    if len(days) == 2 and days[sd] != days[pm]:
-        logging.error(' extract_day() : day extracted '
-                      'from sortdate and from pubmonth are not '
-                      'equal: {0} and {1}'.format(days[sd], days[pm]))
+            logging.error(' extract_day() : could not extract day '
+                          'from pubmonth {0}'.format(month_letter))
 
     if sd in days.keys():
         day = days[sd]
@@ -589,6 +582,7 @@ def extract_day(info_dict):
         day = days[pm]
     else:
         success = False
+        logging.error(' extract_day() : day extraction failure')
 
     return success, day
 

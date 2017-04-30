@@ -25,8 +25,8 @@ if __name__ == "__main__":
                         help='Logfile path. Defaults to ./wos_parser.log')
 
     parser.add_argument('-c', '--chunksize',
-                        default='100000', type=int,
-                        help='Chunk size of output (output list size). Defaults to 100000')
+                        default='50000', type=int,
+                        help='Chunk size of output (output list size). Defaults to 50000')
 
     parser.add_argument('-m', '--maxchunks',
                         default='None',
