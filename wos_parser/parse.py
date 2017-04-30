@@ -429,9 +429,9 @@ def parse_reference(branch):
         success = False
         result_dict = etree_to_dict(branch)
         if not result_dict['reference']:
-            logging.warning(' parse_reference() : empty reference')
+            logging.error(' parse_reference() : empty reference')
         else:
-            logging.warning(' parse_reference() : corrupt reference : {0}'.format(result_dict))
+            logging.error(' parse_reference() : corrupt reference : {0}'.format(result_dict))
     return success, result_dict
 
 
