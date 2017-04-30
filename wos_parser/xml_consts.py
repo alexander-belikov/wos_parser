@@ -124,3 +124,5 @@ publisher_full_address_path = 'full_address'
 publisher_city_path = 'city'
 publisher_name_path = './names/name'
 # publisher_display_name == display_name_path
+
+len_wosid = 19

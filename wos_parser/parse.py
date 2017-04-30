@@ -48,6 +48,8 @@ from .xml_consts import publisher_city_path, publisher_full_address_path
 from .xml_consts import role_key
 from .xml_consts import page_path, begin_key, end_key, pagecount_key
 
+from .xml_consts import len_wosid
+
 from datetime import datetime
 from hashlib import sha1
 
@@ -397,20 +399,27 @@ def parse_reference(branch):
             uid_value = uid.text
         except:
             logging.error(' parse_reference() : uid field absent:')
-            logging.error(' parse_reference() : adding ROG id')
             if result_dict[doi_path]:
                 value = result_dict[doi_path]
-                uid_value = 'DOI:{0}'.format(value)
+                value = sha1(value.encode('utf-8')).hexdigest()
+                uid_value = 'DOI:{0}'.format(value)[:len_wosid]
+                # uid_value = sha1(value.encode('utf-8')).hexdigest()[:len_wosid]
+                logging.error(' parse_reference() : adding DOI id : {0}'.format(uid_value))
+                logging.error(' parse_reference() : ROG id ref {0}'.format(result_dict))
             elif result_dict[cited_title_path]:
                 value = sha1(result_dict[cited_title_path].encode('utf-8')).hexdigest()
-                uid_value = 'ROG:{0}'.format(value)
+                uid_value = 'ROG:{0}'.format(value)[:len_wosid]
+                logging.error(' parse_reference() : adding ROG id title : {0}'.format(uid_value))
+                logging.error(' parse_reference() : ROG id ref {0}'.format(result_dict))
             elif result_dict[cited_author_path] \
-                    and result_dict[year_path+'+str'] \
+                    and result_dict[year_path+'str'] \
                     and result_dict[cited_work_path]:
                 str_combo = ' '.join([result_dict[cited_author_path],
-                                      result_dict[year_path+'str'], result_dict[cited_work_path]])
+                                      result_dict[year_path + '_str'], result_dict[cited_work_path]])
                 value = sha1(str_combo.encode('utf-8')).hexdigest()
-                uid_value = 'ROG:{0}'.format(value)
+                uid_value = 'ROG:{0}'.format(value)[:len_wosid]
+                logging.error(' parse_reference() : adding ROG id author year cited: {0}'.format(uid_value))
+                logging.error(' parse_reference() : ROG id ref {0}'.format(result_dict))
             else:
                 logging.error(' parse_reference() : uid assignment failed')
                 raise
@@ -422,9 +431,7 @@ def parse_reference(branch):
         if not result_dict['reference']:
             logging.warning(' parse_reference() : empty reference')
         else:
-            result_dict = etree_to_dict(branch)[reference_path]
-            logging.warning(' parse_reference() : corrupt reference :')
-            logging.warning(result_dict)
+            logging.warning(' parse_reference() : corrupt reference : {0}'.format(result_dict))
     return success, result_dict
 
 
@@ -438,11 +445,6 @@ def parse_date(branch, global_year, path=pubinfo_path):
         month : int
         day : int
     """
-
-    # jsonic_leaves = list(map(lambda x: x[1], parsed_leaves))
-    # if not success:
-    #     jsonic_leaves = etree_to_dict(branch)
-
 
     success = True
 
@@ -461,9 +463,6 @@ def parse_date(branch, global_year, path=pubinfo_path):
         except:
             logging.error(' parse_date() : could not capture day')
 
-        # satisfied with just the year info
-        # good_date = list(map(lambda x: date_dict[x][1], good_keys))
-        # ultimate_success = all(list(map(lambda x: date_dict[x][0], date_dict.keys())
         date_dict = {k: v[1] for k, v in date_dict.items() if v[0]}
     except:
         logging.error(' parse_date() : could not capture year')
@@ -519,6 +518,7 @@ def extract_month(info_dict):
     pm = 'pubmonth'
     success = True
     month = -1
+    seasons = {'WIN': 1, 'SPR': 3, 'SUM': 6, 'FAL': 9}
 
     if sd in info_dict.keys():
         sortdate = info_dict[sd]
@@ -528,24 +528,19 @@ def extract_month(info_dict):
         except:
             logging.error(' extract_month() : sortdate format '
                           'corrupt: {0}'.format(sortdate))
-    if pm in info_dict.keys():
-        month_letter = info_dict[pm]
+    elif pm in info_dict.keys():
+        month_letter = info_dict[pm][:3]
         try:
-            if len(month_letter) == 3:
-                date = datetime.strptime(month_letter, '%b')
-            elif '-' in month_letter or ' ' in month_letter:
-                date = datetime.strptime(month_letter[:3], '%b')
-            # possible exception trigger
+            date = datetime.strptime(month_letter, '%b')
             months['pubmonth'] = date.month
         except:
-            logging.error(' extract_month() : pubmonth format '
-                          'corrupt: {0}'.format(month_letter))
-
-    # give priority to sortdate month, report possible discrepancy
-    if len(months) == 2 and months[sd] != months[pm]:
-        logging.error(' extract_month() : extracted months '
-                      'from sortdate and pubmonth are not '
-                      'equal: {0} and {1}'.format(months[sd], months[pm]))
+            if month_letter in seasons.keys():
+                months['pubmonth'] = date.month
+            else:
+                logging.error(' extract_month() : pubmonth format '
+                              'corrupt: {0}'.format(month_letter))
+                raise ValueError(' extract_month() : pubmonth format '
+                                 'corrupt: {0}'.format(month_letter))
 
     if sd in months.keys():
         month = months[sd]
@@ -927,7 +922,7 @@ def parse_identifier(branch):
         dd = branch.attrib
         result_pair = [(dd['type'], dd['value'])]
         if result_pair[0][0] == 'issn':
-            # issn2int triggers an exception issn_str is not correct
+            # issn2int triggers an exception issn_str is not r'^\d{4}-\d{3}[\dxX]$'
             issn_int = issn2int(result_pair[0][1])
             result_pair.append(('issn_int', issn_int))
     except:
@@ -1118,7 +1113,8 @@ def issn2int(issn_str):
             logging.error(' issn2int() : in issn {0} '
                           'check bit is corrupt'.format(issn_str))
             logging.error(' equal to {0}, should be {1}'.format(check_bit, rem))
-            raise ValueError(' issn2int(): invalid check digit'.format(check_bit, rem))
+            # raise ValueError(' issn2int(): invalid check digit'.format(check_bit, rem))
+            return int(issn_str[0:4] + issn_str[5:8])
 
     else:
         logging.error(' issn2int() : issn {0} : does not match '
