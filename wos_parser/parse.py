@@ -976,6 +976,12 @@ def process_titles(titles):
 
 
 def parse_record(pub, global_year):
+    """
+    top level parsing function
+    :param pub: element corresponding to a publication
+    :param global_year:
+    :return: dict corresponding to a publication
+    """
 
     wosid = parse_id(pub)
     pubdate = parse_date(pub, global_year)
@@ -1073,6 +1079,16 @@ def parse_record(pub, global_year):
 
 
 def parse_wos_xml(fp, global_year, good_cf, bad_cf):
+    """
+    driver func, parse file fp, push good and bad records
+    accordingly to good_cf and bad_cf
+
+    :param fp: filepointer to be parsed
+    :param global_year: apriori known year
+    :param good_cf: chunk flusher of good records
+    :param bad_cf: chunk flusher of bad records
+    :return:
+    """
     events = ('start', 'end')
     tree = cET.iterparse(fp, events)
     context = iter(tree)
@@ -1095,6 +1111,13 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf):
 
 
 def issn2int(issn_str):
+    """
+    reduce issn containing str to int
+    and verify the check digit
+    :param issn_str:
+    :return: issn_int
+    """
+
     pat = r'^\d{4}-\d{3}[\dxX]$'
     p = compile(pat)
     if p.match(issn_str):
@@ -1124,6 +1147,11 @@ def issn2int(issn_str):
 
 
 def issnint2str(issn_int):
+    """
+    given issn int produce issn str
+    :param issn_int:
+    :return: issn_str
+    """
     if type(issn_int) is not int:
         raise TypeError('issn_int is not int')
     issn_ = '{num:07d}'.format(num=issn_int)
