@@ -25,6 +25,10 @@ lastname_path = 'last_name'
 firstname_path = 'first_name'
 wos_standard_path = 'wos_standard'
 
+# parse_contributors()
+contributors_path = './static_data/contributors'
+contributor_path = 'contributor/name'
+
 # parse_reference()
 references_path = './static_data/fullrecord_metadata/references'
 reference_path = 'reference'
