@@ -10,10 +10,12 @@ while non-parsable (with respect to an enforced schema) are placed in the bad he
 It is used to run on AWS-based Cloud Kotta infrastucture, while jobs are submitted using Kotta client
 """
 
+
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-classifiers = ['Programming Language :: Python :: 3.5',
+
+classifiers = [
                'Programming Language :: Python :: 3.6',
                'Operating System :: OS Independent',
                'Topic :: Utilities'
@@ -32,6 +34,6 @@ setup(
     long_description=long_description,
     classifiers=classifiers,
     install_requires=[
-        'lxml', 'Cython'
+        'lxml'
     ]
 )

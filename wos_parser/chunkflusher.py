@@ -2,6 +2,7 @@ import pickle
 import gzip
 from gc import collect
 
+
 class ChunkFlusher:
 
     def __init__(self, prefix, chunksize, maxchunks):
