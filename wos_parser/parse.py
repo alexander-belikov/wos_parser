@@ -132,7 +132,17 @@ def parse_id(branch):
 
 
 def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
+    """
+    for a give record pub try to to follow branch_path and parse all leaves following leaf_path
+    with parse_func
 
+    :param pub:
+    :param branch_path:
+    :param leaf_path:
+    :param parse_func:
+    :param filter_false:
+    :return:
+    """
     branch = pub.find(branch_path)
     if branch:
         leaves = branch.findall(leaf_path)
@@ -142,7 +152,7 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
             left_out = list(map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves)))
             if len(left_out) > 0:
                 logging.info(' prune_branch() : in branch {0} {1} leaf(ves) were '
-                              'filtered out.'.format(branch_path, len(left_out)))
+                             'filtered out.'.format(branch_path, len(left_out)))
             parsed_leaves = list(filter(lambda x: x[0], parsed_leaves))
 
         success = all(list(map(lambda x: x[0], parsed_leaves)))
@@ -150,8 +160,7 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
         if not success:
             # keys might be the same
             jsonic_leaves = [etree_to_dict(branch)]
-            logging.info(' prune_branch() : parse failed in branch {0} with value {1} '
-                          .format(branch_path, jsonic_leaves))
+            logging.info(f"prune_branch() : parse failed in branch {branch_path} with value {jsonic_leaves}")
     else:
         success = False
         jsonic_leaves = []
@@ -434,21 +443,41 @@ def parse_reference(branch):
     return success, result_dict
 
 
-##  modified to add vol,issue, has_abstract information
-def parse_vol_issue_has_abs(branch, global_year, path = pubinfo_path):
-    
+def parse_vol_issue_has_abs(branch, path=pubinfo_path):
+
     success = True
-    
     try:
         attrib_dict = branch.find(path).attrib
 
-        result_dict = {'vol':attrib_dict.get('vol', None)}
-        result_dict.update({'issue':attrib_dict.get('issue', None)})
-        result_dict.update({'has_abstract':attrib_dict.get('has_abstract', None)})
-        
-    
+        result_dict = {'vol': attrib_dict.get('vol', None)}
+        result_dict.update({'issue': attrib_dict.get('issue', None)})
+        result_dict.update({'has_abstract': attrib_dict.get('has_abstract', None)})
     except:
         logging.error(' parse_vol_issue() : could not capture vol or issue')
+        success = False
+        result_dict = {}
+    return success, result_dict
+
+
+def parse_properties(branch, path):
+    """
+    expected reference structure:
+
+    required:
+        year : int
+    optional:
+        month : int
+        day : int
+    """
+
+    success = True
+
+    try:
+        result_dict = {}
+        attrib_dict = branch.find(path).attrib
+        result_dict.update((k, v) for k, v in attrib_dict.items())
+    except:
+        logging.error(f'parsing {path} failed')
         success = False
         result_dict = {}
     return success, result_dict
@@ -488,6 +517,43 @@ def parse_date(branch, global_year, path=pubinfo_path):
         success = False
         date_dict = {}
     return success, date_dict
+
+
+def extract_date(attrib_dict, global_year):
+    """
+    expected reference structure:
+
+    required:
+        year : int
+    optional:
+        month : int
+        day : int
+    """
+
+    success = True
+
+    try:
+        year = extract_year(attrib_dict, global_year)
+        date_dict = {'year': year}
+        try:
+            month = extract_month(attrib_dict)
+            date_dict.update({'month': month})
+        except:
+            logging.error(' parse_date() : could not capture month')
+        try:
+            day = extract_day(attrib_dict)
+            date_dict.update({'day': day})
+        except:
+            logging.error(' parse_date() : could not capture day')
+
+        date_dict = {k: v[1] for k, v in date_dict.items() if v[0]}
+    except:
+        logging.error(' parse_date() : could not capture year')
+        success = False
+        date_dict = {}
+
+    rest_dict = {k: v for k, v in attrib_dict.items() if all([f not in k for f in ['date', 'month', 'year']])}
+    return success, date_dict, rest_dict
 
 
 def extract_year(date_info_dict, global_year):
@@ -577,7 +643,6 @@ def extract_day(info_dict):
     pm = 'pubmonth'
     success = True
     day = -1
-
     if sd in info_dict.keys():
         sortdate = info_dict[sd]
         try:
@@ -602,7 +667,7 @@ def extract_day(info_dict):
         day = days[pm]
     else:
         success = False
-        logging.error(' extract_day() : day extraction failure')
+        logging.error(f" extract_day() : day extraction failure {info_dict}")
 
     return success, day
 
@@ -998,17 +1063,22 @@ def parse_record(pub, global_year):
     """
 
     wosid = parse_id(pub)
-    pubdate = parse_date(pub, global_year)
+
     authors = prune_branch(pub, names_path, name_path, parse_name)
-    pubtype = parse_pubtype(pub)
+
+    pubinfo_flag, pubinfo = parse_properties(pub, pubinfo_path)
+
+    # pubdate = parse_date(pub, global_year)
+    # pubtype = parse_pubtype(pub)
+    # # add vol, issue, has_abstract information
+    # vol_issue_has_abs = parse_vol_issue_has_abs(pub, pubinfo_path)
+
+    date_flag, pubdate, pubinfo_rest = extract_date(pubinfo, global_year)
+
     idents = prune_branch(pub, identifiers_path, identifier_path,
                           parse_identifier)
-    
-    #add vol, issue, has_abstract information
-    vol_issue_has_abs = parse_vol_issue_has_abs(pub, pubinfo_path)
 
-    success = all(map(lambda y: y[0], [wosid, pubdate,
-                                       authors, pubtype, idents,vol_issue_has_abs]))
+    success = all([wosid[0], pubinfo_flag, date_flag, authors[0], idents[0]])
     if success:
         addresses = prune_branch(pub, add_path, add_spec_path, parse_address)
 
@@ -1063,12 +1133,12 @@ def parse_record(pub, global_year):
 
         prop_dict = {x: y for x, y in idents_flat}
 
-        ## add vlo, issue, and has_abstract information
-        prop_dict.update({'vol':vol_issue_has_abs[1].get('vol',None)})
-        prop_dict.update({'issue':vol_issue_has_abs[1].get('issue',None)})
-        prop_dict.update({'has_abstract':vol_issue_has_abs[1].get('has_abstract',None)})
+        # prop_dict.update(pubtype[1])
+        # prop_dict.update({'vol': vol_issue_has_abs[1].get('vol', None)})
+        # prop_dict.update({'issue': vol_issue_has_abs[1].get('issue', None)})
+        # prop_dict.update({'has_abstract': vol_issue_has_abs[1].get('has_abstract', None)})
+        prop_dict.update(pubinfo_rest)
 
-        prop_dict.update(pubtype[1])
         prop_dict.update(language_dict)
         prop_dict.update(titles_dict)
         prop_dict.update({'doctype': doctypes[1]})
@@ -1086,7 +1156,7 @@ def parse_record(pub, global_year):
 
         record_dict = {
             'id': wosid[1],
-            'date': pubdate[1],
+            'date': pubdate,
             'addresses': addresses[1],
             'authors': authors[1],
             'references': references[1],
