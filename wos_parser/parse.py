@@ -434,6 +434,26 @@ def parse_reference(branch):
     return success, result_dict
 
 
+##  modified to add vol,issue, has_abstract information
+def parse_vol_issue_has_abs(branch, global_year, path = pubinfo_path):
+    
+    success = True
+    
+    try:
+        attrib_dict = branch.find(path).attrib
+
+        result_dict = {'vol':attrib_dict.get('vol', None)}
+        result_dict.update({'issue':attrib_dict.get('issue', None)})
+        result_dict.update({'has_abstract':attrib_dict.get('has_abstract', None)})
+        
+    
+    except:
+        logging.error(' parse_vol_issue() : could not capture vol or issue')
+        success = False
+        result_dict = {}
+    return success, result_dict
+
+
 def parse_date(branch, global_year, path=pubinfo_path):
     """
     expected reference structure:
@@ -983,9 +1003,12 @@ def parse_record(pub, global_year):
     pubtype = parse_pubtype(pub)
     idents = prune_branch(pub, identifiers_path, identifier_path,
                           parse_identifier)
+    
+    #add vol, issue, has_abstract information
+    vol_issue_has_abs = parse_vol_issue_has_abs(pub, pubinfo_path)
 
     success = all(map(lambda y: y[0], [wosid, pubdate,
-                                       authors, pubtype, idents]))
+                                       authors, pubtype, idents,vol_issue_has_abs]))
     if success:
         addresses = prune_branch(pub, add_path, add_spec_path, parse_address)
 
@@ -1039,6 +1062,11 @@ def parse_record(pub, global_year):
         idents_flat = [item for sublist in idents[1] for item in sublist]
 
         prop_dict = {x: y for x, y in idents_flat}
+
+        ## add vlo, issue, and has_abstract information
+        prop_dict.update({'vol':vol_issue_has_abs[1].get('vol',None)})
+        prop_dict.update({'issue':vol_issue_has_abs[1].get('issue',None)})
+        prop_dict.update({'has_abstract':vol_issue_has_abs[1].get('has_abstract',None)})
 
         prop_dict.update(pubtype[1])
         prop_dict.update(language_dict)
