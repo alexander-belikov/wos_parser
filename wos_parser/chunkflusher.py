@@ -1,45 +1,60 @@
 import pickle
 import gzip
-from gc import collect
+import gc
 import json
+import re
 
 
-class ChunkFlusher:
-
-    def __init__(self, prefix, chunksize, maxchunks, output_mode='json'):
-        self.f_prefix = prefix
+class ChunkFlusherMono:
+    def __init__(self, target_prefix, chunksize, maxchunks=None, suffix=None):
+        self.target_prefix = target_prefix
         self.acc = []
-        self.j = 0
+        self.chunk_count = 0
         self.chunksize = chunksize
         self.maxchunks = maxchunks
-        self.output_mode = output_mode
+        self.suffix = "good" if suffix is None else suffix
+        self.chunks_flushed = 0
 
     def flush_chunk(self):
         if len(self.acc) > 0:
-            if self.output_mode == 'pickle':
-                with gzip.open('{0}{1}.pgz'.format(self.f_prefix, self.j), 'wb') as fp:
-                    pickle.dump(self.acc, fp)
-            elif self.output_mode == 'json':
-                jsonfilename = '{0}{1}.json.gz'.format(self.f_prefix, self.j)
-                with gzip.GzipFile(jsonfilename, 'w') as fout:
-                    fout.write(json.dumps(self.acc, indent=4).encode('utf-8'))
-
-    def check(self):
-        if len(self.acc) >= self.chunksize:
-            self.flush_chunk()
-            self.j += 1
-            self.acc = []
-            collect()
+            fname = f"{self.target_prefix}#{self.suffix}#{self.chunk_count}.json.gz"
+            with gzip.GzipFile(fname, 'w') as fout:
+                fout.write(json.dumps(self.acc, indent=4).encode('utf-8'))
+                self.chunk_count += 1
 
     def push(self, item):
         self.acc.append(item)
-        self.check()
+        if len(self.acc) >= self.chunksize:
+            self.flush_chunk()
+            self.acc = []
+            gc.collect()
 
-    def ready(self):
-        if not (self.maxchunks and self.j >= self.maxchunks):
-            return True
-        else:
-            return False
+    def stop(self):
+        return self.maxchunks is not None and (self.chunk_count >= self.maxchunks)
 
     def items_processed(self):
-        return self.j*self.chunksize + len(self.acc)
+        return self.chunk_count * self.chunksize + len(self.acc)
+
+
+class FPSmart:
+    """
+    smart file pointer : acts like a normal file pointer but subs *pattern* with substitute
+    """
+    def __init__(self, fp, pattern, substitute="", count=0):
+        self.fp = fp
+        self.pattern = pattern
+        self.p = re.compile(self.pattern)
+        self.count = count
+        self.sub = substitute
+
+    def read(self, n):
+        s = self.fp.read(n).decode()
+        return self.transform(s).encode()
+
+    def transform(self, s):
+        m = self.p.search(s)
+        r = self.p.sub(self.sub, s, count=self.count)
+        return r
+
+    def close(self):
+        self.fp.close()

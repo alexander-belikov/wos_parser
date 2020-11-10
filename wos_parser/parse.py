@@ -519,7 +519,7 @@ def parse_date(branch, global_year, path=pubinfo_path):
     return success, date_dict
 
 
-def extract_date(attrib_dict, global_year):
+def extract_date(attrib_dict, global_year=None):
     """
     expected reference structure:
 
@@ -556,7 +556,7 @@ def extract_date(attrib_dict, global_year):
     return success, date_dict, rest_dict
 
 
-def extract_year(date_info_dict, global_year):
+def extract_year(date_info_dict, global_year=None):
     years = {}
     sd = 'sortdate'
     py = 'pubyear'
@@ -578,8 +578,10 @@ def extract_year(date_info_dict, global_year):
             years[py] = int(pubyear)
         except:
             logging.error(' extract_year() : pubyear format corrupt: {0}'.format(pubyear))
-    else:
+    elif global_year:
         years[gl] = global_year
+    else:
+        raise ValueError("Year not extracted ")
 
     if sd in years.keys():
         year = years[sd]
@@ -1054,7 +1056,7 @@ def process_titles(titles):
     return result_dict
 
 
-def parse_record(pub, global_year):
+def parse_record(pub, global_year=None):
     """
     top level parsing function
     :param pub: element corresponding to a publication
@@ -1170,7 +1172,7 @@ def parse_record(pub, global_year):
     return success, record_dict
 
 
-def parse_wos_xml(fp, global_year, good_cf, bad_cf, ntest=None):
+def parse_wos_xml(fp, good_cf, bad_cf, global_year=None):
     """
     driver func, parse file fp, push good and bad records
     accordingly to good_cf and bad_cf
@@ -1199,12 +1201,10 @@ def parse_wos_xml(fp, global_year, good_cf, bad_cf, ntest=None):
                       'to parse, placed in the bad heap'.format(ans[1]['id'])
                 logging.error(msg)
                 bad_cf.push(ans[1])
-            if not good_cf.ready() or not bad_cf.ready():
+            if good_cf.stop():
                 break
             root.clear()
             it += 1
-            if ntest and it >= ntest:
-                break
 
 
 def issn2int(issn_str):
