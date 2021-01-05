@@ -34,6 +34,6 @@ setup(
     long_description=long_description,
     classifiers=classifiers,
     install_requires=[
-        'lxml'
+        'lxml', "xmltodict"
     ]
 )

@@ -1,24 +1,49 @@
 from re import compile, sub
 import xml.etree.cElementTree as cET
 from .xml_consts import id_path
-from .xml_consts import add_spec_path, \
-    full_address_path, country_path, city_path, \
-    state_path, zipcode_path, street_path, org_path, \
-    add_no_key
+from .xml_consts import (
+    add_spec_path,
+    full_address_path,
+    country_path,
+    city_path,
+    state_path,
+    zipcode_path,
+    street_path,
+    org_path,
+    add_no_key,
+)
 
 from .xml_consts import suborg_path
 
 from .xml_consts import pubinfo_path
 from .xml_consts import add_path
 
-from .xml_consts import names_path, name_path, display_name_path, \
-    email_path, lastname_path, firstname_path, wos_standard_path
+from .xml_consts import (
+    names_path,
+    name_path,
+    display_name_path,
+    email_path,
+    lastname_path,
+    firstname_path,
+    wos_standard_path,
+    full_name_path,
+)
+from .xml_consts import contributors_path, contributor_path
 
 from .xml_consts import seq_no_key
 
-from .xml_consts import references_path, reference_path, \
-    uid_path, year_path, ref_page_path, cited_author_path, cited_work_path, \
-    cited_title_path, volume_path, doi_path
+from .xml_consts import (
+    references_path,
+    reference_path,
+    uid_path,
+    year_path,
+    ref_page_path,
+    cited_author_path,
+    cited_work_path,
+    cited_title_path,
+    volume_path,
+    doi_path,
+)
 
 from .xml_consts import keywords_path, keyword_path, keywordsplus_path
 from .xml_consts import headings_path, heading_path
@@ -58,11 +83,11 @@ from itertools import filterfalse
 
 
 def kill_trivial_namespace(s):
-    pat = r'xmlns=\".*[^\"]\"(?=>)'
+    pat = r"xmlns=\".*[^\"]\"(?=>)"
     p = compile(pat)
     m = p.search(s)
     positions = m.span()
-    subst = ' '*(positions[1] - positions[0])
+    subst = " " * (positions[1] - positions[0])
     rline = p.sub(subst, s, count=1)
     return rline
 
@@ -78,7 +103,7 @@ def xml_remove_trivial_namespace(source):
             line = next(source)
             # logging.warning(' after next')
             offsets.append(len(line))
-            if 'xmlns=' in line:
+            if "xmlns=" in line:
                 break
         nline = kill_trivial_namespace(line)
         # logging.warning(' after nline')
@@ -86,8 +111,9 @@ def xml_remove_trivial_namespace(source):
         # logging.warning(' after seek')
         source.write(nline)
     except:
-        logging.error(' in xml_remove_trivial_namespace() : '
-                      'failed to modify the file')
+        logging.error(
+            " in xml_remove_trivial_namespace() : " "failed to modify the file"
+        )
 
 
 def etree_to_dict(t):
@@ -122,8 +148,9 @@ def parse_id(branch):
         try:
             value = id_.text
         except:
-            logging.error(' parse_id() : in branch {0} '
-                          'UID could not be parsed'.format(id_path))
+            logging.error(
+                " parse_id() : in branch {0} " "UID could not be parsed".format(id_path)
+            )
             raise
     except:
         success = False
@@ -149,10 +176,14 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
         parsed_leaves = list(map(parse_func, leaves))
 
         if filter_false:
-            left_out = list(map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves)))
+            left_out = list(
+                map(lambda x: x[1], filter(lambda x: not x[0], parsed_leaves))
+            )
             if len(left_out) > 0:
-                logging.info(' prune_branch() : in branch {0} {1} leaf(ves) were '
-                             'filtered out.'.format(branch_path, len(left_out)))
+                logging.info(
+                    " prune_branch() : in branch {0} {1} leaf(ves) were "
+                    "filtered out.".format(branch_path, len(left_out))
+                )
             parsed_leaves = list(filter(lambda x: x[0], parsed_leaves))
 
         success = all(list(map(lambda x: x[0], parsed_leaves)))
@@ -160,18 +191,29 @@ def prune_branch(pub, branch_path, leaf_path, parse_func, filter_false=False):
         if not success:
             # keys might be the same
             jsonic_leaves = [etree_to_dict(branch)]
-            logging.info(f"prune_branch() : parse failed in branch {branch_path} with value {jsonic_leaves}")
+            logging.info(
+                f"prune_branch() : parse failed in branch {branch_path} with value {jsonic_leaves}"
+            )
     else:
         success = False
         jsonic_leaves = []
-        logging.info(' prune_branch() : empty branch parse: failed in branch {0} with value {1}'
-                     .format(branch_path, jsonic_leaves))
+        logging.info(
+            " prune_branch() : empty branch parse: failed in branch {0} with value {1}".format(
+                branch_path, jsonic_leaves
+            )
+        )
 
     return success, jsonic_leaves
 
 
-def add_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=False,
-              name_suffix=None):
+def add_entry(
+    input_dict,
+    branch,
+    entry_path,
+    force_type=None,
+    relaxed_type=False,
+    name_suffix=None,
+):
     elem = branch.find(entry_path)
     update_dict = {}
 
@@ -189,9 +231,9 @@ def add_entry(input_dict, branch, entry_path, force_type=None, relaxed_type=Fals
         name = entry_path + name_suffix
     else:
         name = entry_path
-
-    update_dict.update({name: value})
-    input_dict.update(update_dict)
+    if value:
+        update_dict.update({name: value})
+        input_dict.update(update_dict)
 
 
 def parse_address(branch):
@@ -214,23 +256,32 @@ def parse_address(branch):
     success = True
 
     try:
+
         org_names = branch.findall(org_path)
 
-        def condition(x):
-            return x.attrib and 'pref' in x.attrib and x.attrib['pref'] == 'Y'
+        result_dict = dict()
 
-        # find first org with pref='Y'
-        orgs_pref = list(filter(condition, org_names))
-        orgs_pref = list(map(lambda x: x.text, filterfalse(lambda x: x is None, orgs_pref)))
-        result_dict = {'organizations_pref': orgs_pref}
+        orgs = []
+        for item in org_names:
+            if item is not None:
+                sm = {"name": item.text}
+                sm.update(item.attrib)
+                orgs += [sm]
 
-        orgs_rest = list(filterfalse(condition, org_names))
-        orgs_rest = list(map(lambda x: x.text, filterfalse(lambda x: x is None, orgs_rest)))
-        result_dict.update({'organizations': orgs_rest})
+        if orgs:
+            result_dict.update({"organizations": orgs})
 
         suborg_names = branch.findall(suborg_path)
-        suborgs = list(map(lambda x: x.text, filterfalse(lambda y: y is None, suborg_names)))
-        result_dict.update({'suborganizations': suborgs})
+
+        suborgs = []
+        for item in suborg_names:
+            if item is not None:
+                sm = {"name": item.text}
+                sm.update(item.attrib)
+                suborgs += [sm]
+
+        if suborgs:
+            result_dict.update({"suborganizations": suborgs})
 
         if branch.attrib:
             if add_no_key in branch.attrib:
@@ -256,7 +307,7 @@ def parse_address(branch):
 
 
 def parse_name(branch):
-    #TODO clean up comment
+    # TODO clean up comment
     """
     expected name structure:
 
@@ -283,15 +334,16 @@ def parse_name(branch):
             display_name = branch.find(display_name_path)
             result_dict.update({display_name_path: display_name.text})
         except:
-            logging.error(' parse_name() : display_name not found:')
+            logging.error(" parse_name() : display_name not found:")
             logging.error(etree_to_dict(branch))
             raise
 
         # entries below are optional
-        add_entry(result_dict, branch, wos_standard_path)
         add_entry(result_dict, branch, name_path)
+        add_entry(result_dict, branch, wos_standard_path)
         add_entry(result_dict, branch, lastname_path)
         add_entry(result_dict, branch, firstname_path)
+        add_entry(result_dict, branch, full_name_path)
         add_entry(result_dict, branch, email_path)
 
         result_dict.update((k, v) for k, v in branch.attrib.items())
@@ -299,11 +351,11 @@ def parse_name(branch):
             result_dict[add_no_key] = [0]
         else:
             try:
-                add_no_str = result_dict[add_no_key].split(' ')
+                add_no_str = result_dict[add_no_key].split(" ")
                 # add_no_int = filter(lambda x: is_int(x), add_no_str)
                 result_dict[add_no_key] = list(map(lambda x: int(x), add_no_str))
             except:
-                logging.error(' parse_name() : address numbers string parsing failure:')
+                logging.error(" parse_name() : address numbers string parsing failure:")
                 logging.error(etree_to_dict(branch))
 
         if seq_no_key not in result_dict.keys():
@@ -312,8 +364,39 @@ def parse_name(branch):
             try:
                 result_dict[seq_no_key] = int(result_dict[seq_no_key])
             except:
-                logging.error(' parse_name() : sequence number could not be extracted :')
+                logging.error(
+                    " parse_name() : sequence number could not be extracted :"
+                )
                 logging.error(etree_to_dict(branch))
+    except:
+        success = False
+        result_dict = etree_to_dict(branch)
+    return success, result_dict
+
+
+def parse_contributor(branch):
+    success = True
+
+    try:
+        result_dict = {}
+
+        # possible exception if //name is not available
+        try:
+            display_name = branch.find(display_name_path)
+            result_dict.update({display_name_path: display_name.text})
+        except:
+            logging.error(" parse_name() : display_name not found:")
+            logging.error(etree_to_dict(branch))
+            raise
+
+        # entries below are optional
+        add_entry(result_dict, branch, name_path)
+        add_entry(result_dict, branch, lastname_path)
+        add_entry(result_dict, branch, firstname_path)
+        add_entry(result_dict, branch, full_name_path)
+
+        result_dict.update((k, v) for k, v in branch.attrib.items())
+
     except:
         success = False
         result_dict = etree_to_dict(branch)
@@ -339,37 +422,39 @@ def parse_page(branch, path):
     """
 
     success = True
-    result_dict = {k: None for k in [pagecount_key, begin_key, end_key, 'range']}
+    result_dict = {k: None for k in [pagecount_key, begin_key, end_key, "range"]}
     try:
         entry = branch.find(path)
         pp = entry.text
         attrib_dict = entry.attrib
         result_dict.update(attrib_dict)
-        result_dict['range'] = pp
+        result_dict["range"] = pp
         try:
             result_dict[pagecount_key] = int(result_dict[pagecount_key])
         except:
             try:
                 delta = int(result_dict[end_key]) - int(result_dict[begin_key]) + 1
                 if delta < 1:
-                    logging.error(' parse_page() : page_count value below 1')
-                    raise ValueError('failed to cast to int parsed page_count')
+                    logging.error(" parse_page() : page_count value below 1")
+                    raise ValueError("failed to cast to int parsed page_count")
                 result_dict[pagecount_key] = delta
             except:
                 try:
-                    pps = pp.split('-')
-                    ipps = list(map(int, map(lambda x: sub(r'\D', '', x), pps)))
+                    pps = pp.split("-")
+                    ipps = list(map(int, map(lambda x: sub(r"\D", "", x), pps)))
                     delta = (ipps[1] - ipps[0]) + 1
                     if delta < 1:
-                        logging.error(' parse_page() : page_count value below 1')
-                        raise ValueError('failed to cast to int parsed page_count')
+                        logging.error(" parse_page() : page_count value below 1")
+                        raise ValueError("failed to cast to int parsed page_count")
                     result_dict[pagecount_key] = delta
                 except:
-                    logging.error(' parse_page() : failed to integerize page count field')
-                    raise TypeError('failed to cast to int parsed page_count')
+                    logging.error(
+                        " parse_page() : failed to integerize page count field"
+                    )
+                    raise TypeError("failed to cast to int parsed page_count")
     except:
         success = False
-        logging.error(' parse_page() : could not capture page')
+        logging.error(" parse_page() : could not capture page")
     return success, result_dict
 
 
@@ -392,13 +477,20 @@ def parse_reference(branch):
     success = True
     try:
         result_dict = {}
-        add_entry(result_dict, branch, year_path, int)
-        add_entry(result_dict, branch, year_path, name_suffix='_str')
-        add_entry(result_dict, branch, volume_path, int)
-        add_entry(result_dict, branch, volume_path, name_suffix='_str')
-        add_entry(result_dict, branch, ref_page_path, int)
-        add_entry(result_dict, branch, ref_page_path, name_suffix='_str')
+        # add_entry(result_dict, branch, year_path, int)
+        # add_entry(result_dict, branch, year_path, name_suffix='_str')
+        add_entry(result_dict, branch, year_path)
+
+        # add_entry(result_dict, branch, volume_path, int)
+        # add_entry(result_dict, branch, volume_path, name_suffix='_str')
+        add_entry(result_dict, branch, volume_path)
+
+        # add_entry(result_dict, branch, ref_page_path, int)
+        # add_entry(result_dict, branch, ref_page_path, name_suffix='_str')
+        add_entry(result_dict, branch, ref_page_path)
+
         add_entry(result_dict, branch, doi_path)
+
         add_entry(result_dict, branch, cited_author_path)
         add_entry(result_dict, branch, cited_title_path)
         add_entry(result_dict, branch, cited_work_path)
@@ -407,39 +499,62 @@ def parse_reference(branch):
             uid = branch.find(uid_path)
             uid_value = uid.text
         except:
-            logging.error(' parse_reference() : uid field absent:')
+            logging.error(" parse_reference() : uid field absent:")
             if result_dict[doi_path]:
                 value = result_dict[doi_path]
-                value = sha1(value.encode('utf-8')).hexdigest()
-                uid_value = 'DOI:{0}'.format(value)[:len_wosid]
-                logging.error(' parse_reference() : adding DOI id : {0}'.format(uid_value))
-                logging.error(' parse_reference() : ref content {0}'.format(result_dict))
+                value = sha1(value.encode("utf-8")).hexdigest()
+                uid_value = "DOI:{0}".format(value)[:len_wosid]
+                logging.error(
+                    " parse_reference() : adding DOI id : {0}".format(uid_value)
+                )
+                logging.error(
+                    " parse_reference() : ref content {0}".format(result_dict)
+                )
             elif result_dict[cited_title_path]:
-                value = sha1(result_dict[cited_title_path].encode('utf-8')).hexdigest()
-                uid_value = 'ROG:{0}'.format(value)[:len_wosid]
-                logging.error(' parse_reference() : adding ROG id title : {0}'.format(uid_value))
-                logging.error(' parse_reference() : ref content {0}'.format(result_dict))
-            elif result_dict[cited_author_path] \
-                    and result_dict[year_path + '_str'] \
-                    and result_dict[cited_work_path]:
-                str_combo = ' '.join([result_dict[cited_author_path],
-                                      result_dict[year_path + '_str'], result_dict[cited_work_path]])
-                value = sha1(str_combo.encode('utf-8')).hexdigest()
-                uid_value = 'ROG:{0}'.format(value)[:len_wosid]
-                logging.error(' parse_reference() : adding ROG id author year cited: {0}'.format(uid_value))
-                logging.error(' parse_reference() : ref content {0}'.format(result_dict))
+                value = sha1(result_dict[cited_title_path].encode("utf-8")).hexdigest()
+                uid_value = "ROG:{0}".format(value)[:len_wosid]
+                logging.error(
+                    " parse_reference() : adding ROG id title : {0}".format(uid_value)
+                )
+                logging.error(
+                    " parse_reference() : ref content {0}".format(result_dict)
+                )
+            elif (
+                result_dict[cited_author_path]
+                and result_dict[year_path]
+                and result_dict[cited_work_path]
+            ):
+                str_combo = " ".join(
+                    [
+                        result_dict[cited_author_path],
+                        result_dict[year_path],
+                        result_dict[cited_work_path],
+                    ]
+                )
+                value = sha1(str_combo.encode("utf-8")).hexdigest()
+                uid_value = "ROG:{0}".format(value)[:len_wosid]
+                logging.error(
+                    " parse_reference() : adding ROG id author year cited: {0}".format(
+                        uid_value
+                    )
+                )
+                logging.error(
+                    " parse_reference() : ref content {0}".format(result_dict)
+                )
             else:
-                logging.error(' parse_reference() : uid assignment failed')
+                logging.error(" parse_reference() : uid assignment failed")
                 raise
 
         result_dict.update({uid_path: uid_value})
     except:
         success = False
         result_dict = etree_to_dict(branch)
-        if not result_dict['reference']:
-            logging.error(' parse_reference() : empty reference')
+        if not result_dict["reference"]:
+            logging.error(" parse_reference() : empty reference")
         else:
-            logging.error(' parse_reference() : corrupt reference : {0}'.format(result_dict))
+            logging.error(
+                " parse_reference() : corrupt reference : {0}".format(result_dict)
+            )
     return success, result_dict
 
 
@@ -448,12 +563,13 @@ def parse_vol_issue_has_abs(branch, path=pubinfo_path):
     success = True
     try:
         attrib_dict = branch.find(path).attrib
-
-        result_dict = {'vol': attrib_dict.get('vol', None)}
-        result_dict.update({'issue': attrib_dict.get('issue', None)})
-        result_dict.update({'has_abstract': attrib_dict.get('has_abstract', None)})
+        result_dict = dict()
+        result_dict.update(attrib_dict)
+        # result_dict = {"vol": attrib_dict.get("vol", None)}
+        # result_dict.update({"issue": attrib_dict.get("issue", None)})
+        # result_dict.update({"has_abstract": attrib_dict.get("has_abstract", None)})
     except:
-        logging.error(' parse_vol_issue() : could not capture vol or issue')
+        logging.error(" parse_vol_issue() : could not capture vol or issue")
         success = False
         result_dict = {}
     return success, result_dict
@@ -477,7 +593,7 @@ def parse_properties(branch, path):
         attrib_dict = branch.find(path).attrib
         result_dict.update((k, v) for k, v in attrib_dict.items())
     except:
-        logging.error(f'parsing {path} failed')
+        logging.error(f"parsing {path} failed")
         success = False
         result_dict = {}
     return success, result_dict
@@ -499,21 +615,21 @@ def parse_date(branch, global_year, path=pubinfo_path):
     try:
         attrib_dict = branch.find(path).attrib
         year = extract_year(attrib_dict, global_year)
-        date_dict = {'year': year}
+        date_dict = {"year": year}
         try:
             month = extract_month(attrib_dict)
-            date_dict.update({'month': month})
+            date_dict.update({"month": month})
         except:
-            logging.error(' parse_date() : could not capture month')
+            logging.error(" parse_date() : could not capture month")
         try:
             day = extract_day(attrib_dict)
-            date_dict.update({'day': day})
+            date_dict.update({"day": day})
         except:
-            logging.error(' parse_date() : could not capture day')
+            logging.error(" parse_date() : could not capture day")
 
         date_dict = {k: v[1] for k, v in date_dict.items() if v[0]}
     except:
-        logging.error(' parse_date() : could not capture year')
+        logging.error(" parse_date() : could not capture year")
         success = False
         date_dict = {}
     return success, date_dict
@@ -534,50 +650,58 @@ def extract_date(attrib_dict, global_year=None):
 
     try:
         year = extract_year(attrib_dict, global_year)
-        date_dict = {'year': year}
+        date_dict = {"year": year}
         try:
             month = extract_month(attrib_dict)
-            date_dict.update({'month': month})
+            date_dict.update({"month": month})
         except:
-            logging.error(' parse_date() : could not capture month')
+            logging.error(" parse_date() : could not capture month")
         try:
             day = extract_day(attrib_dict)
-            date_dict.update({'day': day})
+            date_dict.update({"day": day})
         except:
-            logging.error(' parse_date() : could not capture day')
+            logging.error(" parse_date() : could not capture day")
 
         date_dict = {k: v[1] for k, v in date_dict.items() if v[0]}
     except:
-        logging.error(' parse_date() : could not capture year')
+        logging.error(" parse_date() : could not capture year")
         success = False
         date_dict = {}
 
-    rest_dict = {k: v for k, v in attrib_dict.items() if all([f not in k for f in ['date', 'month', 'year']])}
+    rest_dict = {
+        k: v
+        for k, v in attrib_dict.items()
+        if all([f not in k for f in ["date", "month", "year"]])
+    }
     return success, date_dict, rest_dict
 
 
 def extract_year(date_info_dict, global_year=None):
     years = {}
-    sd = 'sortdate'
-    py = 'pubyear'
-    gl = 'globalyear'
+    sd = "sortdate"
+    py = "pubyear"
+    gl = "globalyear"
     success = True
     year = -1
 
     if sd in date_info_dict.keys():
         sortdate = date_info_dict[sd]
         try:
-            date = datetime.strptime(sortdate, '%Y-%m-%d')
+            date = datetime.strptime(sortdate, "%Y-%m-%d")
             years[sd] = date.year
         except:
-            logging.error(' extract_year() : sortdate format corrupt: {0}'.format(sortdate))
+            logging.error(
+                " extract_year() : sortdate format corrupt: {0}".format(sortdate)
+            )
 
     elif py in date_info_dict.keys():
         pubyear = date_info_dict[py]
         try:
             years[py] = int(pubyear)
         except:
-            logging.error(' extract_year() : pubyear format corrupt: {0}'.format(pubyear))
+            logging.error(
+                " extract_year() : pubyear format corrupt: {0}".format(pubyear)
+            )
     elif global_year:
         years[gl] = global_year
     else:
@@ -594,40 +718,46 @@ def extract_year(date_info_dict, global_year=None):
 
     return success, year
 
-#TODO deal with -1 and success redundancy
-#TODO plug in names of the functions in logging
-#TODO check for other date fields (live cover date)
+
+# TODO deal with -1 and success redundancy
+# TODO plug in names of the functions in logging
+# TODO check for other date fields (live cover date)
 
 
 def extract_month(info_dict):
     months = {}
-    sd = 'sortdate'
-    pm = 'pubmonth'
+    sd = "sortdate"
+    pm = "pubmonth"
     success = True
     month = -1
-    seasons = {'WIN': 1, 'SPR': 3, 'SUM': 6, 'FAL': 9}
+    seasons = {"WIN": 1, "SPR": 3, "SUM": 6, "FAL": 9}
 
     if sd in info_dict.keys():
         sortdate = info_dict[sd]
         try:
-            date = datetime.strptime(sortdate, '%Y-%m-%d')
+            date = datetime.strptime(sortdate, "%Y-%m-%d")
             months[sd] = date.month
         except:
-            logging.error(' extract_month() : sortdate format '
-                          'corrupt: {0}'.format(sortdate))
+            logging.error(
+                " extract_month() : sortdate format " "corrupt: {0}".format(sortdate)
+            )
     elif pm in info_dict.keys():
         month_letter = info_dict[pm][:3]
         try:
-            date = datetime.strptime(month_letter, '%b')
-            months['pubmonth'] = date.month
+            date = datetime.strptime(month_letter, "%b")
+            months["pubmonth"] = date.month
         except:
             if month_letter in seasons.keys():
-                months['pubmonth'] = date.month
+                months["pubmonth"] = date.month
             else:
-                logging.error(' extract_month() : pubmonth format '
-                              'corrupt: {0}'.format(month_letter))
-                raise ValueError(' extract_month() : pubmonth format '
-                                 'corrupt: {0}'.format(month_letter))
+                logging.error(
+                    " extract_month() : pubmonth format "
+                    "corrupt: {0}".format(month_letter)
+                )
+                raise ValueError(
+                    " extract_month() : pubmonth format "
+                    "corrupt: {0}".format(month_letter)
+                )
 
     if sd in months.keys():
         month = months[sd]
@@ -641,27 +771,30 @@ def extract_month(info_dict):
 def extract_day(info_dict):
 
     days = {}
-    sd = 'sortdate'
-    pm = 'pubmonth'
+    sd = "sortdate"
+    pm = "pubmonth"
     success = True
     day = -1
     if sd in info_dict.keys():
         sortdate = info_dict[sd]
         try:
-            date = datetime.strptime(sortdate, '%Y-%m-%d')
+            date = datetime.strptime(sortdate, "%Y-%m-%d")
             days[sd] = date.day
         except:
-            logging.error(' extract_day() : sortdate format '
-                          'corrupt: {0}'.format(sortdate))
+            logging.error(
+                " extract_day() : sortdate format " "corrupt: {0}".format(sortdate)
+            )
     elif pm in info_dict.keys():
         month_letter = info_dict[pm]
         try:
-            if ' ' in month_letter:
-                date = datetime.strptime(month_letter, '%b %d')
-                days['pubmonth'] = date.day
+            if " " in month_letter:
+                date = datetime.strptime(month_letter, "%b %d")
+                days["pubmonth"] = date.day
         except:
-            logging.error(' extract_day() : could not extract day '
-                          'from pubmonth {0}'.format(month_letter))
+            logging.error(
+                " extract_day() : could not extract day "
+                "from pubmonth {0}".format(month_letter)
+            )
 
     if sd in days.keys():
         day = days[sd]
@@ -685,14 +818,16 @@ def parse_pubtype(branch):
     try:
         try:
             pubinfo = branch.find(pubinfo_path)
-            result_dict = {'pubtype': pubinfo.attrib['pubtype']}
+            result_dict = {"pubtype": pubinfo.attrib["pubtype"]}
         except:
-            logging.error(' parse_pubtype() : pubtype absent '
-                          'down path {0}'.format(pubinfo_path))
+            logging.error(
+                " parse_pubtype() : pubtype absent "
+                "down path {0}".format(pubinfo_path)
+            )
             raise
     except:
         success = False
-        result_dict = {'pubtype': None}
+        result_dict = {"pubtype": None}
     return success, result_dict
 
 
@@ -702,7 +837,7 @@ def parse_abstract(branch):
     try:
         paragraphs_ = branch.findall(abstract_paragraph_path)
         paragraphs = map(lambda x: x.text, paragraphs_)
-        value = ' '.join(paragraphs)
+        value = " ".join(paragraphs)
     except:
         success = False
         value = etree_to_dict(branch)
@@ -722,10 +857,11 @@ def parse_fundtext(pub):
         paragraphs_ = branch.findall(fundtext_paragraph_path)
         paragraphs = map(lambda x: x.text, paragraphs_)
         # if paragraphs:
-        value = ' '.join(paragraphs)
+        value = " ".join(paragraphs)
     except:
-        logging.info(' parse_fundtext() : fundtext absent '
-                     'in path {0}'.format(pubinfo_path))
+        logging.info(
+            " parse_fundtext() : fundtext absent " "in path {0}".format(pubinfo_path)
+        )
         success = False
         value = None
     return success, value
@@ -747,8 +883,11 @@ def parse_publisher(branch):
         acc_a = []
         for ads in addr_specs:
             subdict_a = {}
-            if ads.attrib and add_no_key in ads.attrib.keys() \
-                    and is_int(ads.attrib[add_no_key]):
+            if (
+                ads.attrib
+                and add_no_key in ads.attrib.keys()
+                and is_int(ads.attrib[add_no_key])
+            ):
                 add_no = int(ads.attrib[add_no_key])
             else:
                 add_no = 0
@@ -756,7 +895,7 @@ def parse_publisher(branch):
             full_addr = ads.find(publisher_full_address_path).text
             city = ads.find(publisher_city_path).text
             subdict_a.update({add_no_key: add_no})
-            subdict_a.update({'city': city, 'address': full_addr})
+            subdict_a.update({"city": city, "address": full_addr})
             acc_a.append(subdict_a)
 
         names = branch.findall(publisher_name_path)
@@ -768,10 +907,12 @@ def parse_publisher(branch):
                     subdict_n[add_no_key] = [0]
                 else:
                     try:
-                        add_no_str = n.attrib[add_no_key].split(' ')
+                        add_no_str = n.attrib[add_no_key].split(" ")
                         subdict_n[add_no_key] = list(map(lambda x: int(x), add_no_str))
                     except:
-                        logging.error(' parse_publisher() : address numbers string parsing failure :')
+                        logging.error(
+                            " parse_publisher() : address numbers string parsing failure :"
+                        )
                         logging.error(etree_to_dict(branch))
                 if seq_no_key not in n.attrib.keys():
                     subdict_n[add_no_key] = 0
@@ -779,7 +920,9 @@ def parse_publisher(branch):
                     try:
                         subdict_n[seq_no_key] = int(n.attrib[seq_no_key])
                     except:
-                        logging.error(' parse_publisher() : sequence number could not be extracted :')
+                        logging.error(
+                            " parse_publisher() : sequence number could not be extracted :"
+                        )
                         logging.error(etree_to_dict(branch))
 
                 if role_key not in n.attrib.keys():
@@ -791,10 +934,10 @@ def parse_publisher(branch):
             # we skip fullname
             name = n.find(display_name_path)
             subdict_n[display_name_path] = name.text
-        result_dict['addresses'] = acc_a
-        result_dict['names'] = acc_n
+        result_dict["addresses"] = acc_a
+        result_dict["names"] = acc_n
     except:
-        logging.info(' parse_publisher() : ')
+        logging.info(" parse_publisher() : ")
         success = False
         result_dict = etree_to_dict(branch)
     return success, result_dict
@@ -813,22 +956,38 @@ def parse_conference(branch):
 
     try:
         if conf_id_key in branch.attrib.keys():
-            if is_int(branch.attrib[conf_id_key]):
-                result_dict.update({conf_id_key: int(branch.attrib[conf_id_key])})
-            else:
-                result_dict.update({conf_id_key: None})
-
-            result_dict.update({'{0}_str'.format(conf_id_key): branch.attrib[conf_id_key]})
+            result_dict.update({conf_id_key: branch.attrib[conf_id_key]})
 
         dates = branch.findall(conf_date_path)
         acc_dates = []
 
+        def convert_date(x):
+            if len(x) == 4:
+                r = datetime.strptime(x, "%Y")
+                return {"year": r.year}
+            elif len(x) == 6:
+                r = datetime.strptime(x, "%Y%m")
+                return {"year": r.year, "month": r.month}
+            elif len(x) == 8:
+                r = datetime.strptime(x, "%Y%m%d")
+                return {"year": r.year, "month": r.month, "day": r.day}
+            else:
+                raise ValueError(f" date {x} has unknown format")
+
         for d in dates:
-            dates_dict = {'dates_str': d.text}
+            dates_dict = {"dates_str": d.text}
             # 'conf_start' 'conf_end' keys
-            dates_dict.update(d.attrib)
+            newdates = dict()
+            for k, v in d.attrib.items():
+                try:
+                    newdates[k] = convert_date(v)
+                except:
+                    logging.error(
+                        f" parse_conference() : unsuccessful date conversion {k} : {v}"
+                    )
+            dates_dict.update(newdates)
             acc_dates.append(dates_dict)
-        result_dict['dates'] = acc_dates
+        result_dict["dates"] = acc_dates
 
         locations = branch.findall(conf_location_path)
         acc_locations = []
@@ -836,33 +995,41 @@ def parse_conference(branch):
             city = l.find(conf_city)
             state = l.find(conf_state)
             host = l.find(conf_host)
-            dd = {'conf_city': None if city is None else city.text,
-                  'conf_state': None if state is None else state.text,
-                  'conf_host': None if host is None else host.text}
+            dd = dict()
+            if city is not None:
+                dd["conf_city"] = city.text
+            if state is not None:
+                dd["conf_state"] = state.text
+            if host is not None:
+                dd["conf_host"] = host.text
             acc_locations.append(dd)
-        result_dict['locations'] = acc_locations
+        if acc_locations:
+            result_dict["locations"] = acc_locations
 
         titles = branch.findall(conf_title_path)
         acc_titles = []
         for t in titles:
             acc_titles.append(t.text)
-        result_dict['titles'] = acc_titles
+        if acc_titles:
+            result_dict["titles"] = acc_titles
 
         sponsors = branch.findall(conf_sponsor_path)
         acc_sponsors = []
 
         for s in sponsors:
             acc_sponsors.append(s.text)
-        result_dict['sponsors'] = acc_sponsors
+        if sponsors:
+            result_dict["sponsors"] = acc_sponsors
 
         infos = branch.findall(conf_info_path)
         acc_infos = []
         for i in infos:
             acc_infos.append(i.text)
 
-        result_dict['infos'] = acc_infos
+        if acc_infos:
+            result_dict["infos"] = acc_infos
     except:
-        logging.error(' parse_conference() : fail')
+        logging.error(" parse_conference() : fail")
         success = False
         result_dict = etree_to_dict(branch)
     return success, result_dict
@@ -880,12 +1047,14 @@ def parse_grant(branch):
     result_dict = {}
     try:
         agency = branch.find(grant_agency_path).text
-        grant_ids = prune_branch(branch, grant_ids_path,
-                                 grant_id_path, parse_generic, filter_false=True)
-        result_dict.update({agency: grant_ids})
+        grant_ids = prune_branch(
+            branch, grant_ids_path, grant_id_path, parse_generic, filter_false=True
+        )
+        result_dict.update({"agency": agency})
+        if grant_ids[1]:
+            result_dict.update({"grant_ids": grant_ids[1]})
     except:
-        logging.info(' parse_grant() : No text attr '
-                     'for grant_agency_path field')
+        logging.info(" parse_grant() : No text attr " "for grant_agency_path field")
         success = False
         result_dict = etree_to_dict(branch)
     return success, result_dict
@@ -903,8 +1072,7 @@ def parse_doctype(branch):
     try:
         value = branch.text
     except:
-        logging.error(' parse_doctype() : No text attr '
-                      'for doctype field')
+        logging.error(" parse_doctype() : No text attr " "for doctype field")
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -920,12 +1088,11 @@ def parse_language(branch):
 
     success = True
     try:
-        value = {'value': branch.text}
+        value = {"value": branch.text}
         if branch.attrib:
             value.update(branch.attrib)
     except:
-        logging.info(' parse_language() : No text attr '
-                      'for language field')
+        logging.info(" parse_language() : No text attr " "for language field")
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -943,7 +1110,7 @@ def parse_generic(branch):
     try:
         value = branch.text
     except:
-        logging.info(' parse_generic() : No text attr for keyword field')
+        logging.info(" parse_generic() : No text attr for keyword field")
         success = False
         value = None
     return success, value
@@ -960,10 +1127,11 @@ def parse_edition(branch):
     success = True
     value = None
     try:
-        value = branch.attrib['value']
+        value = branch.attrib["value"]
     except:
-        logging.info(' parse_edition() : No value in attrib dict '
-                     'for grant_agency_path field')
+        logging.info(
+            " parse_edition() : No value in attrib dict " "for grant_agency_path field"
+        )
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -979,12 +1147,11 @@ def parse_title(branch):
 
     success = True
     try:
-        value = {'value': branch.text}
+        value = {"value": branch.text}
         if branch.attrib:
             value.update(branch.attrib)
     except:
-        logging.warning(' parse_title() : No text attr '
-                        'for title field')
+        logging.warning(" parse_title() : No text attr " "for title field")
         success = False
         value = etree_to_dict(branch)
     return success, value
@@ -1001,15 +1168,17 @@ def parse_identifier(branch):
     success = True
     try:
         dd = branch.attrib
-        result_pair = [(dd['type'], dd['value'])]
-        if result_pair[0][0] == 'issn':
-            # issn2int triggers an exception issn_str is not r'^\d{4}-\d{3}[\dxX]$'
-            issn_int = issn2int(result_pair[0][1])
-            result_pair.append(('issn_int', issn_int))
+        result_pair = [(dd["type"], dd["value"])]
+        # if result_pair[0][0] == "issn":
+        #     # issn2int triggers an exception issn_str is not r'^\d{4}-\d{3}[\dxX]$'
+        #     issn_int = issn2int(result_pair[0][1])
+        #     result_pair.append(("issn_int", issn_int))
     except:
         result_pair = etree_to_dict(branch)
-        logging.error(' parse_identifier() : identifier attrib '
-                      'parse failed : {0}'.format(result_pair))
+        logging.error(
+            " parse_identifier() : identifier attrib "
+            "parse failed : {0}".format(result_pair)
+        )
         success = False
     return success, result_pair
 
@@ -1017,19 +1186,24 @@ def parse_identifier(branch):
 def process_languages(languages):
     result_dict = {}
 
-    languages_list = list(map(lambda x: x['value'], languages[1]))
-    primary_language = list(map(lambda y: y['value'],
-                                filter(lambda x: 'type' in x.keys() and
-                                                 x['type'] == 'primary', languages[1])))
+    languages_list = list(map(lambda x: x["value"], languages[1]))
+    primary_language = list(
+        map(
+            lambda y: y["value"],
+            filter(
+                lambda x: "type" in x.keys() and x["type"] == "primary", languages[1]
+            ),
+        )
+    )
     # populate languages with a list
-    result_dict['languages'] = languages_list
+    result_dict["languages"] = languages_list
 
     # populate primary_language with a primary language
     # if not available, the first available
     if primary_language:
-        result_dict['primary_language'] = primary_language[0]
+        result_dict["primary_language"] = primary_language[0]
     elif languages_list:
-        result_dict['primary_language'] = languages_list[0]
+        result_dict["primary_language"] = languages_list[0]
 
     return result_dict
 
@@ -1038,20 +1212,26 @@ def process_titles(titles):
 
     result_dict = {}
 
-    item_title = list(map(lambda y: y['value'],
-                          filter(lambda x: 'type' in x.keys() and
-                                           x['type'] == 'item', titles[1])))
-    source_title = list(map(lambda y: y['value'],
-                            filter(lambda x: 'type' in x.keys() and
-                                             x['type'] == 'source', titles[1])))
+    item_title = list(
+        map(
+            lambda y: y["value"],
+            filter(lambda x: "type" in x.keys() and x["type"] == "item", titles[1]),
+        )
+    )
+    source_title = list(
+        map(
+            lambda y: y["value"],
+            filter(lambda x: "type" in x.keys() and x["type"] == "source", titles[1]),
+        )
+    )
     if item_title:
-        result_dict['item_title'] = item_title[0]
+        result_dict["item_title"] = item_title[0]
     else:
-        result_dict['item_title'] = None
+        result_dict["item_title"] = None
     if source_title:
-        result_dict['source_title'] = source_title[0]
+        result_dict["source_title"] = source_title[0]
     else:
-        result_dict['source_title'] = None
+        result_dict["source_title"] = None
 
     return result_dict
 
@@ -1067,6 +1247,9 @@ def parse_record(pub, global_year=None):
     wosid = parse_id(pub)
 
     authors = prune_branch(pub, names_path, name_path, parse_name)
+    contributors = prune_branch(
+        pub, contributors_path, contributor_path, parse_contributor
+    )
 
     pubinfo_flag, pubinfo = parse_properties(pub, pubinfo_path)
 
@@ -1077,53 +1260,65 @@ def parse_record(pub, global_year=None):
 
     date_flag, pubdate, pubinfo_rest = extract_date(pubinfo, global_year)
 
-    idents = prune_branch(pub, identifiers_path, identifier_path,
-                          parse_identifier)
+    idents = prune_branch(pub, identifiers_path, identifier_path, parse_identifier)
 
     success = all([wosid[0], pubinfo_flag, date_flag, authors[0], idents[0]])
     if success:
         addresses = prune_branch(pub, add_path, add_spec_path, parse_address)
 
-        references = prune_branch(pub, references_path, reference_path,
-                                  parse_reference, filter_false=True)
+        references = prune_branch(
+            pub, references_path, reference_path, parse_reference, filter_false=True
+        )
 
-        doctypes = prune_branch(pub, doctypes_path, doctype_path,
-                                parse_doctype, filter_false=True)
+        doctypes = prune_branch(
+            pub, doctypes_path, doctype_path, parse_doctype, filter_false=True
+        )
 
-        languages = prune_branch(pub, languages_path, language_path,
-                                 parse_language, filter_false=True)
+        languages = prune_branch(
+            pub, languages_path, language_path, parse_language, filter_false=True
+        )
         language_dict = process_languages(languages)
 
-        titles = prune_branch(pub, titles_path, title_path,
-                              parse_title, filter_false=True)
+        titles = prune_branch(
+            pub, titles_path, title_path, parse_title, filter_false=True
+        )
         titles_dict = process_titles(titles)
 
-        keywords = prune_branch(pub, keywords_path, keyword_path,
-                                parse_generic, filter_false=True)
+        keywords = prune_branch(
+            pub, keywords_path, keyword_path, parse_generic, filter_false=True
+        )
 
-        kws_plus = prune_branch(pub, keywordsplus_path, keyword_path,
-                                parse_generic, filter_false=True)
+        kws_plus = prune_branch(
+            pub, keywordsplus_path, keyword_path, parse_generic, filter_false=True
+        )
 
-        headings = prune_branch(pub, headings_path, heading_path,
-                                parse_generic, filter_false=True)
+        headings = prune_branch(
+            pub, headings_path, heading_path, parse_generic, filter_false=True
+        )
 
-        subheadings = prune_branch(pub, subheadings_path, subheading_path,
-                                   parse_generic, filter_false=True)
+        subheadings = prune_branch(
+            pub, subheadings_path, subheading_path, parse_generic, filter_false=True
+        )
 
-        subjects = prune_branch(pub, subjects_path, subject_path,
-                                parse_generic, filter_false=True)
+        subjects = prune_branch(
+            pub, subjects_path, subject_path, parse_generic, filter_false=True
+        )
 
-        abstracts = prune_branch(pub, abstracts_path, abstract_path,
-                                 parse_abstract, filter_false=True)
+        abstracts = prune_branch(
+            pub, abstracts_path, abstract_path, parse_abstract, filter_false=True
+        )
 
-        grant_agencies = prune_branch(pub, grants_path, grant_path,
-                                      parse_grant, filter_false=True)
+        grant_agencies = prune_branch(
+            pub, grants_path, grant_path, parse_grant, filter_false=True
+        )
 
-        publishers = prune_branch(pub, publishers_path, publisher_path,
-                                  parse_publisher, filter_false=True)
+        publishers = prune_branch(
+            pub, publishers_path, publisher_path, parse_publisher, filter_false=True
+        )
 
-        conferences = prune_branch(pub, conferences_path, conference_path,
-                                   parse_conference, filter_false=True)
+        conferences = prune_branch(
+            pub, conferences_path, conference_path, parse_conference, filter_false=True
+        )
 
         editions = prune_branch(pub, ewuid_path, edition_path, parse_edition)
 
@@ -1143,32 +1338,36 @@ def parse_record(pub, global_year=None):
 
         prop_dict.update(language_dict)
         prop_dict.update(titles_dict)
-        prop_dict.update({'doctype': doctypes[1]})
-        prop_dict.update({'keywords': keywords[1]})
-        prop_dict.update({'keywords_plus': kws_plus[1]})
-        prop_dict.update({'headings': headings[1]})
-        prop_dict.update({'subheadings': subheadings[1]})
-        prop_dict.update({'subjects': list(set(subjects[1]))})
-        prop_dict.update({'abstracts': abstracts[1]})
-        prop_dict.update({'grant_agencies': grant_agencies[1]})
-        prop_dict.update({'fund_text': fund_text[1]})
-        prop_dict.update({'conferences': conferences[1]})
-        prop_dict.update({'page_info': page_dict[1]})
-        prop_dict.update({'editions': editions[1]})
+        prop_dict.update({"doctype": doctypes[1]})
+        prop_dict.update({"keywords": keywords[1]})
+        prop_dict.update({"keywords_plus": kws_plus[1]})
+        prop_dict.update({"headings": headings[1]})
+        prop_dict.update({"subheadings": subheadings[1]})
+        prop_dict.update({"subjects": list(set(subjects[1]))})
+        prop_dict.update({"abstracts": abstracts[1]})
+        prop_dict.update({"grant_agencies": grant_agencies[1]})
+        prop_dict.update({"fund_text": fund_text[1]})
+        prop_dict.update({"conferences": conferences[1]})
+        prop_dict.update({"page_info": page_dict[1]})
+        prop_dict.update({"editions": editions[1]})
+
+        prop_dict = {k: v for k, v in prop_dict.items() if v}
 
         record_dict = {
-            'id': wosid[1],
-            'date': pubdate,
-            'addresses': addresses[1],
-            'authors': authors[1],
-            'references': references[1],
-            'publishers': publishers[1],
-            'properties': prop_dict,
+            "id": wosid[1],
+            "date": pubdate,
+            "addresses": addresses[1],
+            "authors": authors[1],
+            "contributors": contributors[1],
+            "references": references[1],
+            "publishers": publishers[1],
+            "properties": prop_dict,
         }
 
     else:
         record_dict = etree_to_dict(pub)
-        record_dict.update({'id': wosid[1]})
+        record_dict.update({"id": wosid[1]})
+    record_dict = {k: v for k, v in record_dict.items() if v}
     return success, record_dict
 
 
@@ -1184,11 +1383,11 @@ def parse_wos_xml(fp, good_cf, bad_cf, global_year=None):
     :param ntest: number of records for test mode
     :return:
     """
-    events = ('start', 'end')
+    events = ("start", "end")
     tree = cET.iterparse(fp, events)
     context = iter(tree)
     event, root = next(context)
-    rec_ = 'REC'
+    rec_ = "REC"
     it = 0
 
     for event, pub in context:
@@ -1197,8 +1396,10 @@ def parse_wos_xml(fp, good_cf, bad_cf, global_year=None):
             if ans[0]:
                 good_cf.push(ans[1])
             else:
-                msg = ' parse_wos_xml() : wos_id {0} failed ' \
-                      'to parse, placed in the bad heap'.format(ans[1]['id'])
+                msg = (
+                    " parse_wos_xml() : wos_id {0} failed "
+                    "to parse, placed in the bad heap".format(ans[1]["id"])
+                )
                 logging.error(msg)
                 bad_cf.push(ans[1])
             if good_cf.stop():
@@ -1215,7 +1416,7 @@ def issn2int(issn_str):
     :return: issn_int
     """
 
-    pat = r'^\d{4}-\d{3}[\dxX]$'
+    pat = r"^\d{4}-\d{3}[\dxX]$"
     p = compile(pat)
     if p.match(issn_str):
         res = 0
@@ -1225,22 +1426,25 @@ def issn2int(issn_str):
             res += pp[0] * pp[1]
 
         rem = (11 - res) % 11
-        rem = 'X' if rem == 10 else rem
+        rem = "X" if rem == 10 else rem
 
         if rem == check_bit:
             return int(issn_str[0:4] + issn_str[5:8])
         else:
-            logging.error(' issn2int() : in issn {0} '
-                          'check bit is corrupt'.format(issn_str))
-            logging.error(' equal to {0}, should be {1}'.format(check_bit, rem))
+            logging.error(
+                " issn2int() : in issn {0} " "check bit is corrupt".format(issn_str)
+            )
+            logging.error(" equal to {0}, should be {1}".format(check_bit, rem))
             # raise ValueError(' issn2int(): invalid check digit'.format(check_bit, rem))
             return int(issn_str[0:4] + issn_str[5:8])
 
     else:
-        logging.error(' issn2int() : issn {0} : does not match '
-                      'the pattern {1}'.format(issn_str, pat))
+        logging.error(
+            " issn2int() : issn {0} : does not match "
+            "the pattern {1}".format(issn_str, pat)
+        )
 
-        raise ValueError(' issn2int(): invalid issn string')
+        raise ValueError(" issn2int(): invalid issn string")
 
 
 def issnint2str(issn_int):
@@ -1250,16 +1454,16 @@ def issnint2str(issn_int):
     :return: issn_str
     """
     if type(issn_int) is not int:
-        raise TypeError('issn_int is not int')
-    issn_ = '{num:07d}'.format(num=issn_int)
+        raise TypeError("issn_int is not int")
+    issn_ = "{num:07d}".format(num=issn_int)
     check = map(lambda x: int(x), issn_)
     res = 0
     for pp in zip(check, range(8, 1, -1)):
         res += pp[0] * pp[1]
 
     rem = (11 - res) % 11
-    rem = 'X' if rem == 10 else rem
-    issn_str = '{0}-{1}{2}'.format(issn_[:4], issn_[4:], rem)
+    rem = "X" if rem == 10 else rem
+    issn_str = "{0}-{1}{2}".format(issn_[:4], issn_[4:], rem)
     return issn_str
 
 
@@ -1276,6 +1480,6 @@ def fixtag(ns, tag, nsmap):
     # ids = rel_ids.replace('/', '/{{{0}}}'.format(nsmap[key]))
     # or ids = rel_ids.replace('/', '/{0}:'.format(key))
     if ns in nsmap.keys():
-        return '{' + nsmap[ns] + '}' + tag
+        return "{" + nsmap[ns] + "}" + tag
     else:
         return tag
